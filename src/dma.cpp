@@ -112,7 +112,7 @@ uint32_t dma::mem_phys_to_virt(volatile uint32_t phys)
 {
 	//MBOX METHOD
 	uint32_t offset=phys-mbox.bus_addr;
-	uint32_t result=(uint32_t)((uint8_t *)mbox.virt_addr+offset);
+	uint32_t result=(size_t)((uint8_t *)mbox.virt_addr+offset);
 	//printf("MemtoVirt:Offset=%lx phys=%lx -> %lx\n",offset,phys,result);
 	return result;
 }
@@ -146,7 +146,7 @@ int dma::getcbposition()
 	volatile uint32_t dmacb=(uint32_t)(dma_reg.gpioreg[DMA_CONBLK_AD+channel*0x40]);
 	//fprintf(stderr,"cb=%x\n",dmacb);
 	if(dmacb>0)
-		return mem_phys_to_virt(dmacb)-(uint32_t)virtbase;
+		return mem_phys_to_virt(dmacb)-(size_t)virtbase;
 	else
 		return -1;
 	// dma_reg.gpioreg[DMA_CONBLK_AD+channel*0x40]-mem_virt_to_phys((void *)cbarray );
