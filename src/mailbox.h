@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAJOR_NUM_B 100
 #define IOCTL_MBOX_PROPERTY _IOWR(MAJOR_NUM_B, 0, char *)
 
-#define LOCAL_DEVICE_FILE_NAME "/dev/rpidatv-mb"
+#define LOCAL_DEVICE_FILE_NAME "/dev/librpitx"
 #define VCIO_DEVICE_FILE_NAME "/dev/vcio"
 
 #define PAGE_SIZE (4*1024)
