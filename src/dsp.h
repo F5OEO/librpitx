@@ -5,7 +5,7 @@
 #include <iostream>
 #include <math.h>
 #include <complex>
-#include <liquid/liquid.h>
+
 class dsp
 {
 	protected:
@@ -25,7 +25,7 @@ class dsp
 
 	dsp();
 	dsp(uint32_t samplerate);
-	void pushsample(liquid_float_complex sample);	
+	void pushsample(std::complex<float> sample);	
 
 };
 #endif

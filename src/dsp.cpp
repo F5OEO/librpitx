@@ -68,7 +68,7 @@ int dsp::arctan2(int y, int x) // Should be replaced with fast_atan2 from rtl_fm
 	return (y < 0) ? -angle : angle; // negate if in quad III or IV
 }
 
-void dsp::pushsample(liquid_float_complex sample)
+void dsp::pushsample(std::complex<float> sample)
 {
 
 	amplitude=norm(sample);	

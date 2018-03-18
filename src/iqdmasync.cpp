@@ -134,7 +134,7 @@ void iqdmasync::SetDmaAlgo()
 }
 
 
-void iqdmasync::SetIQSample(uint32_t Index,liquid_float_complex sample)
+void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample)
 {
 	Index=Index%buffersize;	
 	mydsp.pushsample(sample);

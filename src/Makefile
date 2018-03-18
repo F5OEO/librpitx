@@ -2,7 +2,7 @@
 all:  librpitx 
 
 CFLAGS	= -Wall -O3 -Wno-unused-variable 
-LDFLAGS	= -lm -lrt -lpthread -lliquid
+LDFLAGS	= -lm -lrt -lpthread 
 CCP = g++ 
 CC = gcc 
 

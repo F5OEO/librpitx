@@ -21,7 +21,7 @@ void SimpleTest(uint64_t Freq)
 
 	clkgpio clk;
 	clk.print_clock_tree();
-	//clk.SetPllNumber(clk_plld,2);
+	clk.SetPllNumber(clk_plld,1);
 	clk.SetAdvancedPllMode(true);
 	clk.SetCenterFrequency(Freq,100000);
 	int Deviation=0;
@@ -75,6 +75,7 @@ void SimpleTestDMA(uint64_t Freq)
 	ngfmtest.stop();
 	
 }
+/*
 using std::complex;
 void SimpleTestLiquid()
 {
@@ -123,7 +124,7 @@ void SimpleTestLiquid()
 	
 	ngfmtest.stop();
 }
-
+*/
 void SimpleTestFileIQ(uint64_t Freq)
 {
 	FILE *iqfile=NULL;
@@ -155,7 +156,7 @@ void SimpleTestFileIQ(uint64_t Freq)
 				for(int i=0;i<nbread/2;i++)
 				{
 					
-					liquid_float_complex x=complex<float>(IQBuffer[i*2]/32768.0,IQBuffer[i*2+1]/32768.0); 
+					std::complex<float> x=std::complex<float>(IQBuffer[i*2]/32768.0,IQBuffer[i*2+1]/32768.0); 
 					iqtest.SetIQSample(Index+i,x);
 					
 				}
@@ -392,8 +393,8 @@ int main(int argc, char* argv[])
 
 	//SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
-	//SimpleTestFileIQ(Freq);
-	SimpleTestDMA(Freq);
+	SimpleTestFileIQ(Freq);
+	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
 	//SimpleTestOOK(Freq);
 	//SimpleTestBurstFsk(Freq);

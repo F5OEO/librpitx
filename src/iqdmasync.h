@@ -5,7 +5,6 @@
 #include "dma.h"
 #include "gpio.h"
 #include "dsp.h"
-#include <liquid/liquid.h>
 
 
 class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
@@ -21,7 +20,7 @@ class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	void SetDmaAlgo();
 	
 	void SetPhase(bool inversed);
-	void SetIQSample(uint32_t Index,liquid_float_complex sample);
+	void SetIQSample(uint32_t Index,std::complex<float> sample);
 }; 
 
 #endif
