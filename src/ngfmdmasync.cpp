@@ -106,7 +106,7 @@ void ngfmdmasync::SetDmaAlgo()
 		//fprintf(stderr,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
 }
 
-void ngfmdmasync::SetFrequencySample(uint32_t Index,int Frequency)
+void ngfmdmasync::SetFrequencySample(uint32_t Index,double Frequency)
 {
 	Index=Index%buffersize;	
 	sampletab[Index]=(0x5A<<24)|GetMasterFrac(Frequency);

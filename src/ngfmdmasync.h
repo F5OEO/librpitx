@@ -16,7 +16,7 @@ class ngfmdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	void SetDmaAlgo();
 	
 	void SetPhase(bool inversed);
-	void SetFrequencySample(uint32_t Index,int Frequency);
+	void SetFrequencySample(uint32_t Index,double Frequency);
 }; 
 
 #endif

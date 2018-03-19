@@ -163,7 +163,7 @@ class clkgpio:public gpio
 	int SetCenterFrequency(uint64_t Frequency,int Bandwidth);
 	int ComputeBestLO(uint64_t Frequency,int Bandwidth);
 	int SetMasterMultFrac(uint32_t Mult,uint32_t Frac);
-	uint32_t GetMasterFrac(int Frequency);
+	uint32_t GetMasterFrac(double Frequency);
 	void enableclk(int gpio);  
 	void disableclk(int gpio);
         
