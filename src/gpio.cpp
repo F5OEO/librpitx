@@ -132,7 +132,7 @@ int clkgpio::SetMasterMultFrac(uint32_t Mult,uint32_t Frac)
 
 }
 
-int clkgpio::SetFrequency(int Frequency)
+int clkgpio::SetFrequency(double Frequency)
 {
 	if(ModulateFromMasterPLL)
 	{
@@ -159,6 +159,7 @@ int clkgpio::SetFrequency(int Frequency)
 	return 0;
 
 }
+
 
 uint32_t clkgpio::GetMasterFrac(int Frequency)
 {

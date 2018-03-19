@@ -156,7 +156,7 @@ class clkgpio:public gpio
 	int SetPllNumber(int PllNo,int MashType);
 	uint64_t GetPllFrequency(int PllNo);
 	void print_clock_tree(void);
-	int SetFrequency(int Frequency); 
+	int SetFrequency(double Frequency); 
 	int SetClkDivFrac(uint32_t Div,uint32_t Frac);
 	void SetPhase(bool inversed);
 	void SetAdvancedPllMode(bool Advanced);
