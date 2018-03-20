@@ -162,6 +162,7 @@ class clkgpio:public gpio
 	void SetAdvancedPllMode(bool Advanced);
 	int SetCenterFrequency(uint64_t Frequency,int Bandwidth);
 	double GetFrequencyResolution();
+	double GetRealFrequency(double Frequency);
 	int ComputeBestLO(uint64_t Frequency,int Bandwidth);
 	int SetMasterMultFrac(uint32_t Mult,uint32_t Frac);
 	uint32_t GetMasterFrac(double Frequency);

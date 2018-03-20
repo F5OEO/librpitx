@@ -194,7 +194,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency,int Bandwidth)
       best_divider=0;
       for( divider=1;divider<4096;divider++)
       {
-        if( Frequency*divider <  300e6 ) continue; // widest accepted frequency range
+        if( Frequency*divider <  600e6 ) continue; // widest accepted frequency range
         if( Frequency*divider > 1500e6 ) break;
 
         max_int_multiplier=((int)((double)(Frequency+Bandwidth)*divider*xtal_freq_recip));
@@ -256,6 +256,17 @@ double clkgpio::GetFrequencyResolution()
 		res=(Pllfrequency/(double)(FreqDivider+1)-Pllfrequency/(double)(FreqDivider))/4096.0;
 	}
 	return res;
+}
+
+double clkgpio::GetRealFrequency(double Frequency)
+{
+	double FloatMult=((double)(CentralFrequency+Frequency)*PllFixDivider)/(double)(XOSC_FREQUENCY);
+	uint32_t freqctl = FloatMult*((double)(1<<20)) ; 
+	int IntMultiply= freqctl>>20; // Need to be calculated to have a center frequency
+	freqctl&=0xFFFFF; // Fractionnal is 20bits
+	uint32_t FracMultiply=freqctl&0xFFFFF; 
+	double RealFrequency=((double)IntMultiply+(FracMultiply/(double)(1<<20)))*(double)(XOSC_FREQUENCY)/PllFixDivider-(CentralFrequency+Frequency);
+	return RealFrequency;	
 }
 
 int clkgpio::SetCenterFrequency(uint64_t Frequency,int Bandwidth)
