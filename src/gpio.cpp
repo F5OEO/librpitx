@@ -194,7 +194,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency,int Bandwidth)
       best_divider=0;
       for( divider=1;divider<4096;divider++)
       {
-        if( Frequency*divider <  600e6 ) continue; // widest accepted frequency range
+        if( Frequency*divider <  300e6 ) continue; // widest accepted frequency range
         if( Frequency*divider > 1500e6 ) break;
 
         max_int_multiplier=((int)((double)(Frequency+Bandwidth)*divider*xtal_freq_recip));
@@ -240,6 +240,22 @@ int clkgpio::ComputeBestLO(uint64_t Frequency,int Bandwidth)
 			fprintf(stderr,"Central frequency not available !!!!!!\n");
 			return -1;		
     	}
+}
+
+double clkgpio::GetFrequencyResolution()
+{
+	double res=0;
+	if(ModulateFromMasterPLL)
+	{
+		res=XOSC_FREQUENCY/(double)(1<<20)/PllFixDivider;
+	}
+	else
+	{
+		double Freqresult=(double)Pllfrequency/(double)(CentralFrequency);
+		uint32_t FreqDivider=(uint32_t)Freqresult;
+		res=(Pllfrequency/(double)(FreqDivider+1)-Pllfrequency/(double)(FreqDivider))/4096.0;
+	}
+	return res;
 }
 
 int clkgpio::SetCenterFrequency(uint64_t Frequency,int Bandwidth)
