@@ -23,15 +23,19 @@ void SimpleTest(uint64_t Freq)
 	clk.print_clock_tree();
 	clk.SetPllNumber(clk_plld,1);
 	clk.SetAdvancedPllMode(true);
-	clk.SetCenterFrequency(Freq,100000);
+	clk.SetCenterFrequency(Freq,1000);
+	double freqresolution=clk.GetFrequencyResolution();
+	double RealFreq=clk.GetRealFrequency(0);
+	fprintf(stderr,"Frequency resolution=%f Error freq=%f\n",freqresolution,RealFreq);
 	int Deviation=0;
 	clk.SetFrequency(000);
 	clk.enableclk(4);
 	while(running)
 	{
+		clk.SetFrequency(000);
 		sleep(5);
-		//Deviation+=1;
-		clk.SetFrequency(Deviation);
+		clk.SetFrequency(freqresolution);
+		sleep(5);
 	}
 	/*for(int i=0;i<100000;i+=1)
 	{
@@ -46,9 +50,8 @@ void SimpleTestDMA(uint64_t Freq)
 {
 	
 
-	int SR=200000;
+	int SR=1000;
 	int FifoSize=4096;
-	//ngfmdmasync ngfmtest(1244200000,SR,14,FifoSize);
 	ngfmdmasync ngfmtest(Freq,SR,14,FifoSize);
 	for(int i=0;running;)
 	{
@@ -62,7 +65,7 @@ void SimpleTestDMA(uint64_t Freq)
 			for(int j=0;j<Available;j++)
 			{
 				//ngfmtest.SetFrequencySample(Index,((i%10000)>5000)?1000:0);
-				ngfmtest.SetFrequencySample(Index+j,(i%SR));
+				ngfmtest.SetFrequencySample(Index+j,(i%SR)/10.0);
 				i++;
 			
 			}
@@ -75,103 +78,45 @@ void SimpleTestDMA(uint64_t Freq)
 	ngfmtest.stop();
 	
 }
-/*
-using std::complex;
-void SimpleTestLiquid()
-{
-	
 
-	int SR=200000;
-	int FifoSize=4096;
-	ngfmdmasync ngfmtest(144200000,SR,14,FifoSize);
-	dsp mydsp(SR);
-	 nco_crcf q = nco_crcf_create(LIQUID_NCO);
-	 nco_crcf_set_phase(q, 0.0f);
-	nco_crcf_set_frequency(q, -0.2f);
-	
-	//ngfmtest.print_clock_tree();
-	for(int i=0;(i<SR)&&running;)
-	{
-		//usleep(10);
-		usleep(FifoSize*1000000.0*3.0/(4.0*SR));
-		int Available=ngfmtest.GetBufferAvailable();
-		if(Available>FifoSize/2)
-		{	
-			int Index=ngfmtest.GetUserMemIndex();
-			//printf("GetIndex=%d\n",Index);
-			for(int j=0;j<Available;j++)
-			{
-				//ngfmtest.SetFrequencySample(Index,((i%10000)>5000)?1000:0);
-				//ngfmtest.SetFrequencySample(Index+j,(i%SR));
-				nco_crcf_adjust_frequency(q,1e-5);
-				liquid_float_complex x;
-				nco_crcf_step(q);
-				nco_crcf_cexpf(q, &x);
-				mydsp.pushsample(x);
-				if(mydsp.frequency>SR) mydsp.frequency=SR;
-				if(mydsp.frequency<-SR) mydsp.frequency=-SR;
-				ngfmtest.SetFrequencySample(Index+j,mydsp.frequency);
-				//fprintf(stderr,"freq=%f Amp=%f\n",mydsp.frequency,mydsp.amplitude);
-				//fprintf(stderr,"freq=%f\n",nco_crcf_get_frequency(q)*SR);
-				i++;
-			
-			}
-		}
-		
-		
-	}
-	fprintf(stderr,"End\n");
-	
-	ngfmtest.stop();
-}
-*/
+
 void SimpleTestFileIQ(uint64_t Freq)
 {
 	FILE *iqfile=NULL;
 	iqfile=fopen("../ssbtest.iq","rb");
 	if (iqfile==NULL) printf("input file issue\n");
 
-
+	#define IQBURST 1280
 	bool stereo=true;
 	int SR=48000;
 	int FifoSize=512;
-	//iqdmasync iqtest(1245000000,SR,14,FifoSize);
-	//iqdmasync iqtest(50100000,SR,14,FifoSize);
 	iqdmasync iqtest(Freq,SR,14,FifoSize);
-	//iqdmasync iqtest(14100000,SR,14,FifoSize);
-	short IQBuffer[128*2];
-	
+	short IQBuffer[IQBURST*2];
+	std::complex<float> CIQBuffer[IQBURST];	
 	while(running)
 	{
-		//usleep(FifoSize*1000000.0*1.0/(8.0*SR));
-		usleep(100);
-		int Available=iqtest.GetBufferAvailable();
-		if(Available>256)
-		{	
-			int Index=iqtest.GetUserMemIndex();
-			int nbread=fread(IQBuffer,sizeof(short),128*2,iqfile);
-			if(nbread>0)
+		int nbread=fread(IQBuffer,sizeof(short),IQBURST*2,iqfile);
+		if(nbread>0)
+		{
+			for(int i=0;i<nbread/2;i++)
 			{
-				//printf("NbRead=%d\n",nbread);
-				for(int i=0;i<nbread/2;i++)
-				{
 					
-					std::complex<float> x=std::complex<float>(IQBuffer[i*2]/32768.0,IQBuffer[i*2+1]/32768.0); 
-					iqtest.SetIQSample(Index+i,x);
-					
-				}
+				CIQBuffer[i]=std::complex<float>(IQBuffer[i*2]/32768.0,IQBuffer[i*2+1]/32768.0); 
+				
 			}
-			else 
-			{
-				printf("End of file\n");
-				fseek ( iqfile , 0 , SEEK_SET );
-				//break;
-			}
+			iqtest.SetIQSamples(CIQBuffer,nbread/2);
+		}
+		else 
+		{
+			printf("End of file\n");
+			fseek ( iqfile , 0 , SEEK_SET );
+		
+		
 		}
 	}
+
 	iqtest.stop();
 }
-
 
 void SimpleTestbpsk(uint64_t Freq)
 {
@@ -264,7 +209,7 @@ void SimpleTestAm(uint64_t Freq)
 	amdmasync amtest(Freq,SR,14,FifoSize);
 	
 	short AudioBuffer[128*2];
-	
+
 	while(running)
 	{
 		//usleep(FifoSize*1000000.0*1.0/(8.0*SR));
