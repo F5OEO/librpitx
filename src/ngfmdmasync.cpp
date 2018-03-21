@@ -19,12 +19,14 @@ This program is free software: you can redistribute it and/or modify
 
 #include "stdio.h"
 #include "ngfmdmasync.h"
+#include <unistd.h>
+#include <sched.h>
 
 
-ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,2,1)
+ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,2,1)
 {
 
-	
+	SampleRate=SR;
 	tunefreq=TuneFrequency;
 	clkgpio::SetAdvancedPllMode(true);
 	clkgpio::SetCenterFrequency(TuneFrequency,SampleRate); // Write Mult Int and Frac : FixMe carrier is already there
@@ -112,6 +114,36 @@ void ngfmdmasync::SetFrequencySample(uint32_t Index,double Frequency)
 	sampletab[Index]=(0x5A<<24)|GetMasterFrac(Frequency);
 	//fprintf(stderr,"Frac=%d\n",GetMasterFrac(Frequency));
 	PushSample(Index);
+}
+
+void ngfmdmasync::SetFrequencySamples(double *sample,size_t Size)
+{
+	size_t NbWritten=0;
+	int OSGranularity=100;
+	while(NbWritten<Size)
+	{
+		int Available=GetBufferAvailable();
+		int TimeToSleep=1e6*((int)buffersize*3/4-Available-OSGranularity)/SampleRate; // Sleep for theorically fill 3/4 of Fifo
+		if(TimeToSleep>0)
+		{
+			//fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
+			usleep(TimeToSleep);
+		}
+		else
+		{
+			//fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			sched_yield();
+		}
+		Available=GetBufferAvailable();
+		int Index=GetUserMemIndex();
+		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
+		
+		for(int i=0;i<ToWrite;i++)
+		{
+			SetFrequencySample(Index+i,sample[NbWritten++]);
+		}
+		
+	}
 }
 
 

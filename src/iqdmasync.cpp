@@ -19,15 +19,17 @@ This program is free software: you can redistribute it and/or modify
 
 #include "stdio.h"
 #include "iqdmasync.h"
+#include <unistd.h>
+#include <sched.h>
 
 
-iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,4,3)
+iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,4,3)
 {
 // Usermem :
 // FRAC frequency
 // PAD Amplitude
 // FSEL for amplitude 0
-	
+	SampleRate=SR;
 	tunefreq=TuneFrequency;
 	clkgpio::SetAdvancedPllMode(true);
 	clkgpio::SetCenterFrequency(TuneFrequency,SampleRate); // Write Mult Int and Frac : FixMe carrier is already there
@@ -162,4 +164,33 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample)
 	PushSample(Index);
 }
 
+void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size)
+{
+	size_t NbWritten=0;
+	int OSGranularity=100;
+	while(NbWritten<Size)
+	{
+		int Available=GetBufferAvailable();
+		int TimeToSleep=1e6*((int)buffersize*3/4-Available-OSGranularity)/SampleRate; // Sleep for theorically fill 3/4 of Fifo
+		if(TimeToSleep>0)
+		{
+			//fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
+			usleep(TimeToSleep);
+		}
+		else
+		{
+			//fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			sched_yield();
+		}
+		Available=GetBufferAvailable();
+		int Index=GetUserMemIndex();
+		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
+		
+		for(int i=0;i<ToWrite;i++)
+		{
+			SetIQSample(Index+i,sample[NbWritten++]);
+		}
+		
+	}
+}
 

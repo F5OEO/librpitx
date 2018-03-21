@@ -14,13 +14,15 @@ class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	bool syncwithpwm;
 	dsp mydsp;
 	uint32_t	Originfsel; //Save the original FSEL GPIO
+	uint32_t SampleRate;
 	public:
-	iqdmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Channel,uint32_t FifoSize);
+	iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize);
 	~iqdmasync();
 	void SetDmaAlgo();
 	
 	void SetPhase(bool inversed);
 	void SetIQSample(uint32_t Index,std::complex<float> sample);
+	void SetIQSamples(std::complex<float> *sample,size_t Size);
 }; 
 
 #endif
