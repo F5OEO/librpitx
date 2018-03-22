@@ -21,8 +21,8 @@ class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	void SetDmaAlgo();
 	
 	void SetPhase(bool inversed);
-	void SetIQSample(uint32_t Index,std::complex<float> sample);
-	void SetIQSamples(std::complex<float> *sample,size_t Size);
+	void SetIQSample(uint32_t Index,std::complex<float> sample,int Harmonic);
+	void SetIQSamples(std::complex<float> *sample,size_t Size,int Harmonic);
 }; 
 
 #endif

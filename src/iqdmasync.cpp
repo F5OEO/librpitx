@@ -136,14 +136,14 @@ void iqdmasync::SetDmaAlgo()
 }
 
 
-void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample)
+void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmonic)
 {
 	Index=Index%buffersize;	
 	mydsp.pushsample(sample);
 	/*if(mydsp.frequency>2250) mydsp.frequency=2250;
 	if(mydsp.frequency<1000) mydsp.frequency=1000;*/
-	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency); //Frequency
-	int IntAmplitude=(int)(mydsp.amplitude*1e4*8.0)-1;
+	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency)/Harmonic; //Frequency
+	int IntAmplitude=(int)(mydsp.amplitude*1e4*8.0)-1; //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
 
 	int IntAmplitudePAD=0;
 	if(IntAmplitude>7) IntAmplitudePAD=7;
@@ -164,7 +164,7 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample)
 	PushSample(Index);
 }
 
-void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size)
+void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmonic=1)
 {
 	size_t NbWritten=0;
 	int OSGranularity=100;
@@ -188,9 +188,11 @@ void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size)
 		
 		for(int i=0;i<ToWrite;i++)
 		{
-			SetIQSample(Index+i,sample[NbWritten++]);
+			SetIQSample(Index+i,sample[NbWritten++],1);
 		}
 		
 	}
 }
+
+
 
