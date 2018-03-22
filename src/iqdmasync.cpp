@@ -142,7 +142,7 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmon
 	mydsp.pushsample(sample);
 	/*if(mydsp.frequency>2250) mydsp.frequency=2250;
 	if(mydsp.frequency<1000) mydsp.frequency=1000;*/
-	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency)/Harmonic; //Frequency
+	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency/Harmonic); //Frequency
 	int IntAmplitude=(int)(mydsp.amplitude*1e4*8.0)-1; //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
 
 	int IntAmplitudePAD=0;
