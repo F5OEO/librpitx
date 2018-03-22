@@ -188,7 +188,7 @@ void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmoni
 		
 		for(int i=0;i<ToWrite;i++)
 		{
-			SetIQSample(Index+i,sample[NbWritten++],1);
+			SetIQSample(Index+i,sample[NbWritten++],Harmonic);
 		}
 		
 	}
