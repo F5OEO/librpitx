@@ -19,7 +19,7 @@ This program is free software: you can redistribute it and/or modify
 #include "fskburst.h"
 
 
-	fskburst::fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,uint32_t Deviation,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+2,2,1),freqdeviation(Deviation)
+	fskburst::fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,float Deviation,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+2,2,1),freqdeviation(Deviation)
 	{
 		
 		clkgpio::SetAdvancedPllMode(true);

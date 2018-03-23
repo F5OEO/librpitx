@@ -8,12 +8,12 @@
 class fskburst:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 {
 	protected:
-	uint32_t freqdeviation;
+	float freqdeviation;
 	uint32_t Originfsel;
 	bool syncwithpwm;
 	dma_cb_t *lastcbp;
 	public:
-	fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,uint32_t Deviation,int Channel,uint32_t FifoSize);
+	fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,float Deviation,int Channel,uint32_t FifoSize);
 	~fskburst();
 	void SetDmaAlgo();
 	
