@@ -104,7 +104,7 @@ void SimpleTestFileIQ(uint64_t Freq)
 				CIQBuffer[i]=std::complex<float>(IQBuffer[i*2]/32768.0,IQBuffer[i*2+1]/32768.0); 
 				
 			}
-			iqtest.SetIQSamples(CIQBuffer,nbread/2);
+			iqtest.SetIQSamples(CIQBuffer,nbread/2,1);
 		}
 		else 
 		{
@@ -252,7 +252,7 @@ void SimpleTestAm(uint64_t Freq)
 void SimpleTestOOK(uint64_t Freq)
 {
 	
-	int SR=1000;
+	int SR=2000;
 	int FifoSize=512;
 	amdmasync amtest(Freq,SR,14,FifoSize);
 	
@@ -260,10 +260,11 @@ void SimpleTestOOK(uint64_t Freq)
 	int count=0;
 	int Every=SR/100;
 	float x=0.0;
+	
 	while(running)
 	{
 		//usleep(FifoSize*1000000.0*1.0/(8.0*SR));
-		usleep(100);
+		usleep(1);
 		int Available=amtest.GetBufferAvailable();
 		if(Available>256)
 		{	
@@ -271,13 +272,13 @@ void SimpleTestOOK(uint64_t Freq)
 				for(int i=0;i<Available;i++)
 				{
 						
-						//if((count/Every)%4>2) x=0; else x=1;
-						//x+=(1.0/(float)SR*10.0);
-						x+=0.0001;
-						if(x>1.0) x=0;
-						
+						if(count<1000)
+							x=0;
+						else
+							x=1.0;
 						amtest.SetAmSample(Index+i,x);
 						count++;
+						if(count>2000) count=0;
 				}	
 		}
 	}
@@ -289,7 +290,7 @@ void SimpleTestBurstFsk(uint64_t Freq)
 	
 	//int SR=40625;
 	int SR=40625;
-	int Deviation=26370;
+	float Deviation=26370;
 	int FiFoSize=4000;
 	fskburst fsktest(Freq,SR,Deviation,14,FiFoSize);
 	
@@ -299,15 +300,20 @@ void SimpleTestBurstFsk(uint64_t Freq)
 	while(running)
 	{
 		int i;
-		for(i=0;i<FiFoSize;i++)
+		int BurstLen=rand()%FiFoSize;
+		for(i=0;i<BurstLen;i++)
 		{
-			TabSymbol[i]=(i/10)%2;
+			TabSymbol[i]=rand()%2;
+		}	
+		fsktest.SetSymbols(TabSymbol,BurstLen);
+		sleep(1);
+		/*for(i=0;i<FiFoSize;i++)
+		{
+			TabSymbol[i]=1;
 		}	
 		fsktest.SetSymbols(TabSymbol,FiFoSize);
-		sleep(1);
-		fsktest.SetSymbols(TabSymbol,FiFoSize/2);
-		sleep(1);
-	
+		sleep(1);*/
+		
 		
 	}
 	fsktest.stop();
@@ -338,11 +344,11 @@ int main(int argc, char* argv[])
 
 	//SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
-	SimpleTestFileIQ(Freq);
+	//SimpleTestFileIQ(Freq);
 	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
 	//SimpleTestOOK(Freq);
-	//SimpleTestBurstFsk(Freq);
+	SimpleTestBurstFsk(Freq);
 	
 }	
 
