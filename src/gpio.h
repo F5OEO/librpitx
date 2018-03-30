@@ -147,7 +147,8 @@ class clkgpio:public gpio
 	uint64_t Pllfrequency;
 	bool ModulateFromMasterPLL=false;
 	uint64_t CentralFrequency=0;
-	generalgpio gengpio;  
+	generalgpio gengpio; 
+	double clk_ppm=0; 
     public:
 	int PllFixDivider=8; //Fix divider from the master clock in advanced mode
 
@@ -168,6 +169,8 @@ class clkgpio:public gpio
 	uint32_t GetMasterFrac(double Frequency);
 	void enableclk(int gpio);  
 	void disableclk(int gpio);
+	void Setppm(double ppm);
+	void SetppmFromNTP();
         
 };
 

@@ -23,6 +23,7 @@ void SimpleTest(uint64_t Freq)
 	clk.print_clock_tree();
 	clk.SetPllNumber(clk_plld,1);
 	clk.SetAdvancedPllMode(true);
+	//clk.Setppm(+7.7);
 	clk.SetCenterFrequency(Freq,1000);
 	double freqresolution=clk.GetFrequencyResolution();
 	double RealFreq=clk.GetRealFrequency(0);
@@ -30,6 +31,7 @@ void SimpleTest(uint64_t Freq)
 	int Deviation=0;
 	clk.SetFrequency(000);
 	clk.enableclk(4);
+	
 	while(running)
 	{
 		clk.SetFrequency(000);
@@ -37,9 +39,10 @@ void SimpleTest(uint64_t Freq)
 		clk.SetFrequency(freqresolution);
 		sleep(5);
 	}
-	/*for(int i=0;i<100000;i+=1)
+	/*
+	for(int i=0;i<100000;i+=1)
 	{
-		clk.SetFrequency(i);
+		clk.SetFrequency(0);
 		usleep(1000);
 	}*/
 	clk.disableclk(4);
@@ -342,13 +345,13 @@ int main(int argc, char* argv[])
         sigaction(i, &sa, NULL);
     }
 
-	//SimpleTest(Freq);
+	SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
 	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
 	//SimpleTestOOK(Freq);
-	SimpleTestBurstFsk(Freq);
+	//SimpleTestBurstFsk(Freq);
 	
 }	
 

@@ -24,6 +24,8 @@ extern "C"
 #include "raspberry_pi_revision.h"
 #include "stdio.h"
 #include <unistd.h>
+#include <sys/timex.h>
+#include <math.h>
 
 gpio::gpio(uint32_t base, uint32_t len)
 {
@@ -62,7 +64,7 @@ dmagpio::dmagpio():gpio(GetPeripheralBase()+DMA_BASE,DMA_LEN)
 // ***************** CLK Registers *****************************************
 clkgpio::clkgpio():gpio(GetPeripheralBase()+CLK_BASE,CLK_LEN)
 {
-	
+	SetppmFromNTP();
 }
 
 clkgpio::~clkgpio()
@@ -123,7 +125,7 @@ int clkgpio::SetClkDivFrac(uint32_t Div,uint32_t Frac)
 int clkgpio::SetMasterMultFrac(uint32_t Mult,uint32_t Frac)
 {
 	
-	fprintf(stderr,"Master Mult %d Frac %d\n",Mult,Frac);
+	//fprintf(stderr,"Master Mult %d Frac %d\n",Mult,Frac);
 	gpioreg[PLLA_CTRL] = (0x5a<<24) | (0x21<<12) | Mult;
 	usleep(100);
 	gpioreg[PLLA_FRAC]= 0x5A000000 | Frac  ; 
@@ -136,7 +138,7 @@ int clkgpio::SetFrequency(double Frequency)
 {
 	if(ModulateFromMasterPLL)
 	{
-		double FloatMult=((double)(CentralFrequency+Frequency)*PllFixDivider)/(double)(XOSC_FREQUENCY);
+		double FloatMult=((double)(CentralFrequency+Frequency)*PllFixDivider)/((double)(XOSC_FREQUENCY)*(1-clk_ppm*1e-6)); // -ppm : compensate ppm
 		uint32_t freqctl = FloatMult*((double)(1<<20)) ; 
 		int IntMultiply= freqctl>>20; // Need to be calculated to have a center frequency
 		freqctl&=0xFFFFF; // Fractionnal is 20bits
@@ -165,7 +167,7 @@ uint32_t clkgpio::GetMasterFrac(double Frequency)
 {
 	if(ModulateFromMasterPLL)
 	{
-		double FloatMult=((double)(CentralFrequency+Frequency)*PllFixDivider)/(double)(XOSC_FREQUENCY);
+		double FloatMult=((double)(CentralFrequency+Frequency)*PllFixDivider)/((double)(XOSC_FREQUENCY)*(1-clk_ppm*1e-6));
 		uint32_t freqctl = FloatMult*((double)(1<<20)) ; 
 		int IntMultiply= freqctl>>20; // Need to be calculated to have a center frequency
 		freqctl&=0xFFFFF; // Fractionnal is 20bits
@@ -457,6 +459,37 @@ void clkgpio::disableclk(int gpio)
 	
 }
 
+void clkgpio::Setppm(double ppm)
+{
+	clk_ppm=ppm-2.0; // -2 is empiric : FixMe
+}
+
+void clkgpio::SetppmFromNTP()
+{
+	struct timex ntx;
+	int status;
+	//Calibrate Clock system (surely depends also on PLL PPM
+	// =====================================================
+
+	ntx.modes = 0; /* only read */
+  	status = ntp_adjtime(&ntx);
+	double ntp_ppm;
+
+	if (status != TIME_OK)
+	{
+    		fprintf(stderr,"Warning: NTP calibrate failed\n");
+            		
+ 	}
+    else
+    {    
+  
+	    ntp_ppm = (double)ntx.freq/(double)(1 << 16);
+		fprintf(stderr,"Info:NTP find ppm=%f\n",ntp_ppm);
+	    if(fabs(ntp_ppm)<200)
+		    Setppm(ntp_ppm); 
+    }  
+}
+  
 // ************************************** GENERAL GPIO *****************************************************
 
 generalgpio::generalgpio():gpio(GetPeripheralBase()+GENERAL_BASE,GENERAL_LEN)
