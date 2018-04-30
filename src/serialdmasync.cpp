@@ -48,11 +48,7 @@ serialdmasync::serialdmasync(uint32_t SampleRate,int Channel,uint32_t FifoSize,b
 
 	SetDmaAlgo();
 
-	
-	// Note : Spurious are at +/-(19.2MHZ/2^20)*Div*N : (N=1,2,3...) So we need to have a big div to spurious away BUT
-	// Spurious are ALSO at +/-(19.2MHZ/2^20)*(2^20-Div)*N
-	// Max spurious avoid is to be in the center ! Theory shoud be that spurious are set away at 19.2/2= 9.6Mhz ! But need to get account of div of PLLClock
-	
+		
 }
 
 serialdmasync::~serialdmasync()

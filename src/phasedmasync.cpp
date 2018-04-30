@@ -44,9 +44,10 @@ phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Number
 	fprintf(stderr,"PWM Mult %d Frac %d Div %d\n",IntMultiply,FracMultiply,clkgpio::PllFixDivider);
 	
 	
-	pwmgpio::clk.gpioreg[PWMCLK_DIV] = 0x5A000000 | ((clkgpio::PllFixDivider)<<12); // PWM clock input divider				
+	pwmgpio::clk.gpioreg[PWMCLK_DIV] = 0x5A000000 | ((clkgpio::PllFixDivider)<<12) |pwmgpio::pllnumber; // PWM clock input divider				
 	usleep(100);
-	pwmgpio::clk.gpioreg[PWMCLK_CNTL]= 0x5A000000 | (pwmgpio::Mash << 9) | pwmgpio::pllnumber|(1 << 4)  ; //4 is START CLK
+	
+	pwmgpio::clk.gpioreg[PWMCLK_CNTL]= 0x5A000000 | (pwmgpio::Mash << 9) | ((clkgpio::PllFixDivider)<<12)| pwmgpio::pllnumber|(1 << 4)  ; //4 is START CLK
 	usleep(100);
 	pwmgpio::SetPrediv(32);	//SetMode should be called before
 	
