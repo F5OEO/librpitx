@@ -6,23 +6,52 @@
 #include <signal.h>
 
 bool running=true;
+/*int 
+gcd ( int a, int b )
+{
+  int c;
+  while ( a != 0 ) {
+     c = a; a = b%a;  b = c;
+  }
+  return b;
+}*/
+
+uint64_t gcd(uint64_t x,uint64_t y)
+{
+	return y == 0 ? x : gcd(y, x % y);
+}
+
+uint64_t lcm(uint64_t x, uint64_t y)
+{
+	return x * y / gcd(x, y);
+}
+
 void SimpleTest(uint64_t Freq)
 {
 	generalgpio genpio;
 	fprintf(stderr,"GPIOPULL =%x\n",genpio.gpioreg[GPPUDCLK0]);
+	
 	#define PULL_OFF 0
     #define PULL_DOWN 1
     #define PULL_UP 2
-	genpio.gpioreg[GPPUD]=PULL_DOWN;
-    usleep(100);
+	genpio.gpioreg[GPPUD]=1;//PULL_DOWN;
+    usleep(150);
     genpio.gpioreg[GPPUDCLK0]=(1<<4); //GPIO CLK is GPIO 4
-    usleep(100);
-     //genpio.gpioreg[GPPUDCLK0]=(0); //GPIO CLK is GPIO 4
+    usleep(150);
+    genpio.gpioreg[GPPUDCLK0]=(0); //GPIO CLK is GPIO 4
+	
+	//genpio.setpulloff(4);
+
+	padgpio pad;
+	pad.setlevel(7);
+
 
 	clkgpio clk;
 	clk.print_clock_tree();
-	clk.SetPllNumber(clk_plld,1);
-	clk.SetAdvancedPllMode(true);
+	clk.SetPllNumber(clk_plla,0);
+	
+	//clk.SetAdvancedPllMode(true);
+	//clk.SetPLLMasterLoop(0,4,0);
 	//clk.Setppm(+7.7);
 	clk.SetCenterFrequency(Freq,1000);
 	double freqresolution=clk.GetFrequencyResolution();
@@ -30,14 +59,47 @@ void SimpleTest(uint64_t Freq)
 	fprintf(stderr,"Frequency resolution=%f Error freq=%f\n",freqresolution,RealFreq);
 	int Deviation=0;
 	clk.SetFrequency(000);
-	clk.enableclk(4);
 	
+	clk.enableclk(4);
+	usleep(100);
+	//clk.SetClkDivFrac(100,0); // If mash!=0 update doesnt seem to work
+	int count=0;
 	while(running)
 	{
-		clk.SetFrequency(000);
+		//clk.SetMasterMultFrac(44,(1<<count));
+		//uint32_t N=(1<<18);
+		uint32_t N=(1<<13)*count;
+
+		//clk.SetMasterMultFrac(34,N);
+		printf("count =%d gcd%d spurious%f N=%x %f\n",count,lcm(N,1<<20),(double)gcd(1<<20,N)*19.2e6/(double)(1<<20),N,N/(float)(1<<20));
+		count=(count+1)%128;
+		//usleep(10000000);
+		int a=getc(stdin);
+		static int Ki=4,Kp=0,Ka=0;
+		Kp=Kp+1;
+		if(Kp>15)
+		{ Kp=0;
+		 Ki=Ki+1;	
+		}
+		//Ki=Ki+1;
+		if(Ki>11)
+		{
+			 Ki=4;
+			 Ka++;
+		}
+		Ki=Kp;
+		
+		clk.SetClkDivFrac(count,count);
+		
+		//clk.SetPLLMasterLoop(Ki,4,Ka);
+		//clk.SetPLLMasterLoop(2,4,0);
+		//clk.SetPLLMasterLoop(3,4,0); //best one
+		
+		//printf("Ki=%d :Kp %d Ka %d\n ",Ki,Kp,Ka);
+		/*clk.SetFrequency(000);
 		sleep(5);
 		clk.SetFrequency(freqresolution);
-		sleep(5);
+		sleep(5);*/
 	}
 	/*
 	for(int i=0;i<100000;i+=1)

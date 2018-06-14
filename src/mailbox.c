@@ -246,6 +246,28 @@ unsigned execute_qpu(int file_desc, unsigned num_qpus, unsigned control, unsigne
    return p[5];
 }
 
+unsigned get_clocks(int file_desc ) //FixMe !!!!!!
+{
+   int i=0;
+   unsigned p[256];
+
+   p[i++] = 0; // size
+   p[i++] = 0x00000000; // process request
+
+   p[i++] = 0x00010007; // (the tag id)
+   p[i++] = 0; // (size of the buffer)
+   p[i++] = 128; // (size of the data)
+  
+   p[i++] = 0x00000000; // end tag
+   p[0] = i*sizeof *p; // actual size
+
+   mbox_property(file_desc, p);
+   fprintf(stderr,"Clock size = %d\n",p[4]&0xFFF);
+   for(i=0;i<128/4;i++) fprintf(stderr,"%x ",p[i]);
+   fprintf(stderr,"\n");
+   return p[5];
+}
+
 int mbox_open() {
    int file_desc;
 

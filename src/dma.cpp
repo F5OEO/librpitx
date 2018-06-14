@@ -64,6 +64,8 @@ dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to che
 	dma_reg.gpioreg[DMA_CS+channel*0x40] = BCM2708_DMA_RESET|DMA_CS_INT; // Remove int flag
 	usleep(100);
 	dma_reg.gpioreg[DMA_CONBLK_AD+channel*0x40]=mem_virt_to_phys((void*)cbarray ); // reset to beginning 
+
+	//get_clocks(mbox.handle);
 }
 
 void dma::GetRpiInfo()

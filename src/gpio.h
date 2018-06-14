@@ -64,7 +64,8 @@ class dmagpio:public gpio
 #define GPFSEL1    		(0x04/4)
 #define GPFSEL2   		(0x08/4)
 #define GPPUD           (0x94/4)
-#define GPPUDCLK0       (0x9C/4)
+#define GPPUDCLK0       (0x98/4)
+#define GPPUDCLK1       (0x9C/4)
 
 enum {fsel_input,fsel_output,fsel_alt5,fsel_alt4,fsel_alt0,fsel_alt1,fsel_alt2,fsel_alt3};
 
@@ -75,12 +76,13 @@ class generalgpio:public gpio
     generalgpio();
 	int setmode(uint32_t gpio, uint32_t mode);
 	~generalgpio();
-    
+    int setpulloff(uint32_t gpio);
 };
 
 // Add for PLL frequency CTRL wihout divider
 // https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/clk/bcm/clk-bcm2835.c
 // See interesting patch for jitter https://github.com/raspberrypi/linux/commit/76527b4e6a5dbe55e0b2d8ab533c2388b36c86be
+#define GENMASK(h, l)       (((U32_C(1) << ((h) - (l) + 1)) - 1) << (l))
 
 #define CLK_BASE	        (0x00101000)
 #define CLK_LEN			0x1300
@@ -98,6 +100,34 @@ class generalgpio:public gpio
 # define CM_LOCK_FLOCKC			(1<<10)
 # define CM_LOCK_FLOCKB			(1<<9)
 # define CM_LOCK_FLOCKA			(1<<8)
+
+#define CM_PLLA			(0x104/4)
+/*
+# define CM_PLL_ANARST			BIT(8)
+# define CM_PLLA_HOLDPER		BIT(7)
+# define CM_PLLA_LOADPER		BIT(6)
+# define CM_PLLA_HOLDCORE		BIT(5)
+# define CM_PLLA_LOADCORE		BIT(4)
+# define CM_PLLA_HOLDCCP2		BIT(3)
+# define CM_PLLA_LOADCCP2		BIT(2)
+# define CM_PLLA_HOLDDSI0		BIT(1)
+# define CM_PLLA_LOADDSI0		BIT(0)
+*/
+#define CM_PLLC			(0x108/4)
+#define CM_PLLD			(0x10c/4)
+#define CM_PLLH			(0x110/4)
+#define CM_PLLB			(0x170/4)
+
+
+
+#define A2W_PLLA_ANA0		(0x1010/4)
+#define A2W_PLLC_ANA0		(0x1030/4)
+#define A2W_PLLD_ANA0		(0x1050/4)
+#define A2W_PLLH_ANA0		(0x1070/4)
+#define A2W_PLLB_ANA0		(0x10f0/4)
+#define A2W_PLL_KA_SHIFT	7
+#define A2W_PLL_KI_SHIFT	19
+#define A2W_PLL_KP_SHIFT	15
 
 #define PLLA_CTRL (0x1100/4)
 #define PLLA_FRAC (0x1200/4)
@@ -171,6 +201,7 @@ class clkgpio:public gpio
 	void disableclk(int gpio);
 	void Setppm(double ppm);
 	void SetppmFromNTP();
+	void SetPLLMasterLoop(int Ki,int Kp,int Ka);	
         
 };
 
@@ -284,6 +315,7 @@ class padgpio:public gpio
     public:
     padgpio();
 	~padgpio();
+	int setlevel(int level);
 };
 
 #endif

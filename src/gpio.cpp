@@ -29,6 +29,11 @@ gpio::gpio(uint32_t base, uint32_t len)
 {
 
 	gpioreg = (uint32_t *)mapmem(base, len);
+		
+	/*int mhandle=mbox_open();
+	get_clocks(mhandle);
+	mbox_close(mhandle);
+	*/
 }
 
 uint32_t gpio::GetPeripheralBase()
@@ -144,8 +149,10 @@ int clkgpio::SetFrequency(double Frequency)
 		uint32_t freqctl = FloatMult * ((double)(1 << 20));
 		int IntMultiply = freqctl >> 20; // Need to be calculated to have a center frequency
 		freqctl &= 0xFFFFF;				 // Fractionnal is 20bits
+
 		uint32_t FracMultiply = freqctl & 0xFFFFF;
-		//gpioreg[PLLA_FRAC]= 0x5A000000 | FracMultiply  ; // Only Frac is Sent
+		//uint32_t FracMultiply = 0.75*(1<<20);
+		
 		SetMasterMultFrac(IntMultiply, FracMultiply);
 	}
 	else
@@ -192,7 +199,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	int divider, min_int_multiplier, max_int_multiplier, fom, int_multiplier, best_fom = 0;
 	double frac_multiplier;
 	best_divider = 0;
-	for (divider = 1; divider < 4096; divider++)//1 is allowed only for MASH=0
+	for (divider = 2; divider < 4096; divider++)//1 is allowed only for MASH=0
 	{
 		if (Frequency * divider < 600e6)
 			continue; // widest accepted frequency range
@@ -202,7 +209,11 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 		max_int_multiplier = ((int)((double)(Frequency + Bandwidth) * divider * xtal_freq_recip));
 		min_int_multiplier = ((int)((double)(Frequency - Bandwidth) * divider * xtal_freq_recip));
 		if (min_int_multiplier != max_int_multiplier)
-			continue; // don't cross integer boundary
+		{
+			//fprintf(stderr,"Warning : cross boundary frequency\n");
+			continue; // don't cross integer boundary	
+		}
+		//	continue; // don't cross integer boundary
 
 		solution_count++; // if we make it here the solution is acceptable,
 		fom = 0;		  // but we want a good solution
@@ -219,16 +230,18 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 		frac_multiplier = ((double)(Frequency)*divider * xtal_freq_recip);
 		int_multiplier = (int)frac_multiplier;
 		frac_multiplier = frac_multiplier - int_multiplier;
-		if ((int_multiplier % 2) == 0)
-			fom++;
-		if ((frac_multiplier > 0.4) && (frac_multiplier < 0.6))
+		//if ((int_multiplier % 2) == 0)
+		//	fom++;
+		//if (((frac_multiplier > 0.7) && (frac_multiplier < 1.0))||((frac_multiplier > 0.0) && (frac_multiplier < 0.3)))
+		if (((frac_multiplier > 0.2) && (frac_multiplier < 0.3))||((frac_multiplier > 0.7) && (frac_multiplier < 0.8)))
+		//if (((frac_multiplier > 0.4) && (frac_multiplier < 0.6)))
 			fom += 2; // prefer mulipliers away from integer boundaries
 
 		//if( divider%2 == 1 ) fom+=2; // prefer odd dividers
 		// Even and odd dividers could have different harmonic content,
 		// but the latest measurements have shown no significant difference.
 
-		printf("Try multiplier:%f divider:%d VCO: %4.1fMHz\n",Frequency*divider*xtal_freq_recip,divider,(double)Frequency*divider/1e6);
+		//printf("Try multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f\n",Frequency*divider*xtal_freq_recip,divider,(double)Frequency*divider/1e6,frac_multiplier*19.2e6/(double)divider);
 		if (fom > best_fom)
 		{
 			best_fom = fom;
@@ -238,7 +251,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	if (solution_count > 0)
 	{
 		PllFixDivider = best_divider;
-		fprintf(stderr, " multiplier:%f divider:%d VCO: %4.1fMHz\n", Frequency * best_divider * xtal_freq_recip, best_divider, (double)Frequency * best_divider / 1e6);
+		//fprintf(stderr, " multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f \n", Frequency * best_divider * xtal_freq_recip, best_divider, (double)Frequency * best_divider / 1e6,frac_multiplier*xtal_freq_recip/(double)divider);
 		return 0;
 	}
 	else
@@ -289,7 +302,7 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 			fprintf(stderr, "Master PLLA Locked\n");
 		else
 			fprintf(stderr, "Warning ! Master PLLA NOT Locked !!!!\n");
-		SetClkDivFrac(PllFixDivider, 0); // NO MASH !!!!
+		SetClkDivFrac(PllFixDivider, 0x0); // NO MASH !!!!
 		usleep(100);
 
 		usleep(100);
@@ -319,27 +332,46 @@ void clkgpio::SetAdvancedPllMode(bool Advanced)
 	if (ModulateFromMasterPLL)
 	{
 		SetPllNumber(clk_plla, 0);		 // Use PPL_A , Do not USE MASH which generates spurious
-		gpioreg[0x104 / 4] = 0x5A00022A; // Enable Plla_PER
+		gpioreg[CM_PLLA] = 0x5A00022A; // Enable Plla_PER
 		usleep(100);
 
 		uint32_t ana[4];
 		for (int i = 3; i >= 0; i--)
 		{
-			ana[i] = gpioreg[(0x1010 / 4) + i];
+			ana[i] = gpioreg[(A2W_PLLA_ANA0 ) + i];
 		}
 
 		ana[1]&=~(1<<14); // No use prediv means Frequency
 		//ana[1] |= (1 << 14); // use prediv means Frequency*2
 		for (int i = 3; i >= 0; i--)
 		{
-			gpioreg[(0x1010 / 4) + i] = (0x5A << 24) | ana[i];
+			gpioreg[(A2W_PLLA_ANA0 ) + i] = (0x5A << 24) | ana[i];
 		}
 
 		usleep(100);
-		gpioreg[PLLA_CORE] = 0x5A000001; // Div ?	
-		gpioreg[PLLA_PER] = 0x5A000001; // Div ?
+		gpioreg[PLLA_CORE] = 0x5A000000|(1<<8);//Disable 
+		gpioreg[PLLA_PER] = 0x5A000001; // Divisor
 		usleep(100);
 	}
+}
+
+void clkgpio::SetPLLMasterLoop(int Ki,int Kp,int Ka)
+{
+	uint32_t ana[4];
+		for (int i = 3; i >= 0; i--)
+		{
+			ana[i] = gpioreg[(A2W_PLLA_ANA0 ) + i];
+		}
+
+		ana[1]=(Ki<<A2W_PLL_KI_SHIFT)|(Kp<<A2W_PLL_KP_SHIFT)|(Ka<<A2W_PLL_KA_SHIFT);
+		fprintf(stderr,"Loop parameter =%x\n",ana[1]);
+		for (int i = 3; i >= 0; i--)
+		{
+			gpioreg[(A2W_PLLA_ANA0 ) + i] = (0x5A << 24) | ana[i];
+		}
+		usleep(100)	;
+	//Only PLLA for now
+	
 }
 
 void clkgpio::print_clock_tree(void)
@@ -518,6 +550,17 @@ int generalgpio::setmode(uint32_t gpio, uint32_t mode)
 
 	return 0;
 }
+
+int generalgpio::setpulloff(uint32_t gpio)
+{
+	gpioreg[GPPUD]=0;
+	usleep(150);	
+	gpioreg[GPPUDCLK0]=1<<gpio;
+	usleep(150);	
+	gpioreg[GPPUDCLK0]=0;
+	return 0;
+}
+
 
 // ********************************** PWM GPIO **********************************
 
@@ -761,4 +804,10 @@ padgpio::padgpio() : gpio(GetPeripheralBase() + PADS_GPIO, PADS_GPIO_LEN)
 
 padgpio::~padgpio()
 {
+}
+
+int padgpio::setlevel(int level)
+{
+	gpioreg[PADS_GPIO_0]=0x5a000000 + (level&0x7) + (0<<4) + (0<<3);
+	return 0;	
 }
