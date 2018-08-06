@@ -71,7 +71,7 @@ int dsp::arctan2(int y, int x) // Should be replaced with fast_atan2 from rtl_fm
 void dsp::pushsample(std::complex<float> sample)
 {
 
-	amplitude=norm(sample);	
+	amplitude=abs(sample);	
 
     double phase=atan2(sample.imag(),sample.real());
 	//fprintf(stderr,"phase %f\n",phase);
