@@ -80,9 +80,11 @@ void iqdmasync::SetDmaAlgo()
 	for (uint32_t samplecnt = 0; samplecnt < buffersize; samplecnt++) 
 		{ 
 			
+			
+
 			//@0				
 			//Set Amplitude by writing to PADS	
-			cbp->info = 0;//BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
+			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
 			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample+1]);
 			cbp->dst = 0x7E000000+(PADS_GPIO_0<<2)+PADS_GPIO;
 			cbp->length = 4;
@@ -90,9 +92,20 @@ void iqdmasync::SetDmaAlgo()
 			cbp->next = mem_virt_to_phys(cbp + 1);		
 			cbp++;
 
+			//@2 Write a frequency sample : Order of DMA CS influence maximum rate : here 0,2,1 is the best : why !!!!!!
+
+			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP ;
+			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]);
+			cbp->dst = 0x7E000000 +  (PLLA_FRAC<<2) + CLK_BASE ; 
+			cbp->length = 4;
+			cbp->stride = 0;
+			cbp->next = mem_virt_to_phys(cbp + 1);
+			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+			cbp++;
+			
 			//@1				
 			//Set Amplitude  to FSEL for amplitude=0
-			cbp->info = 0;//BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
+			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
 			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample+2]); 
 			cbp->dst = 0x7E000000 + (GPFSEL0<<2)+GENERAL_BASE; 				
 			cbp->length = 4;
@@ -100,24 +113,15 @@ void iqdmasync::SetDmaAlgo()
 			cbp->next = mem_virt_to_phys(cbp + 1); 
 			cbp++;
 
-			//@2 Write a frequency sample
-
-			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP ;
-			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]);
-			cbp->dst = 0x7E000000 + (PLLA_FRAC<<2) + CLK_BASE ; 
-			cbp->length = 4;
-			cbp->stride = 0;
-			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
-			cbp++;
 			
+		
 				
 			//@3 Delay
 			if(syncwithpwm)
 				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
 			else
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
-			cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
+				cbp->info =BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
+			cbp->src = mem_virt_to_phys(&usermem[(samplecnt+1)*registerbysample]);//mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
 			if(syncwithpwm)		
 				cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
 			else
@@ -143,7 +147,7 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmon
 	/*if(mydsp.frequency>2250) mydsp.frequency=2250;
 	if(mydsp.frequency<1000) mydsp.frequency=1000;*/
 	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency/Harmonic); //Frequency
-	int IntAmplitude=(int)(mydsp.amplitude*1e4*8.0)-1; //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
+	int IntAmplitude=(int)(mydsp.amplitude*8.0)-1; //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
 
 	int IntAmplitudePAD=0;
 	if(IntAmplitude>7) IntAmplitudePAD=7;
@@ -168,10 +172,25 @@ void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmoni
 {
 	size_t NbWritten=0;
 	int OSGranularity=100;
+	
+	
+	long int start_time;
+	long time_difference=0;
+	struct timespec gettime_now;
+
+
+	int debug=1;		
+	
 	while(NbWritten<Size)
 	{
+		if(debug>0)
+		{	
+		clock_gettime(CLOCK_REALTIME, &gettime_now);
+		start_time = gettime_now.tv_nsec;	
+		}
 		int Available=GetBufferAvailable();
-		int TimeToSleep=1e6*((int)buffersize*3/4-Available-OSGranularity)/SampleRate; // Sleep for theorically fill 3/4 of Fifo
+		//printf("Available before=%d\n",Available);		
+		int TimeToSleep=1e6*((int)buffersize*3/4-Available)/(float)SampleRate/*-OSGranularity*/; // Sleep for theorically fill 3/4 of Fifo
 		if(TimeToSleep>0)
 		{
 			//fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
@@ -179,15 +198,26 @@ void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmoni
 		}
 		else
 		{
-			//fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
-			sched_yield();
+			fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			//sched_yield();
+		}
+
+		if(debug>0)
+		{	
+		clock_gettime(CLOCK_REALTIME, &gettime_now);
+		time_difference = gettime_now.tv_nsec - start_time;
+		if(time_difference<0) time_difference+=1E9;
+		//fprintf(stderr,"Available %d Measure samplerate=%d\n",GetBufferAvailable(),(int)((GetBufferAvailable()-Available)*1e9/time_difference));
+		debug--;	
 		}
 		Available=GetBufferAvailable();
+		
 		int Index=GetUserMemIndex();
 		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
-		
+		//printf("Available after=%d Timetosleep %d To Write %d\n",Available,TimeToSleep,ToWrite);		
 		for(int i=0;i<ToWrite;i++)
 		{
+			
 			SetIQSample(Index+i,sample[NbWritten++],Harmonic);
 		}
 		

@@ -84,7 +84,7 @@ void dma::GetRpiInfo()
 		{
 			
 			 dram_phys_base   =  0xc0000000;
-			 mem_flag         =  MEM_FLAG_L1_NONALLOCATING/*MEM_FLAG_DIRECT*/|MEM_FLAG_HINT_PERMALOCK|MEM_FLAG_NO_INIT;//0x04;
+			 mem_flag         =  MEM_FLAG_DIRECT|MEM_FLAG_HINT_PERMALOCK|MEM_FLAG_NO_INIT;// 0x04;
 		}
 	}
 	else
