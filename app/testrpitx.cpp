@@ -115,7 +115,7 @@ void SimpleTestDMA(uint64_t Freq)
 {
 	
 
-	int SR=1000;
+	int SR=200000;
 	int FifoSize=4096;
 	ngfmdmasync ngfmtest(Freq,SR,14,FifoSize);
 	for(int i=0;running;)
@@ -407,10 +407,10 @@ int main(int argc, char* argv[])
         sigaction(i, &sa, NULL);
     }
 
-	SimpleTest(Freq);
+	//SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
-	//SimpleTestDMA(Freq);
+	SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
 	//SimpleTestOOK(Freq);
 	//SimpleTestBurstFsk(Freq);
