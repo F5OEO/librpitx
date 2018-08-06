@@ -39,7 +39,8 @@ class gpio
 
 #define DMA_CS_RESET    (1<<31)
 #define DMA_CS_ABORT    (1<<30)
-#define DMA_CS_DISDEBUG (1<<28)
+#define DMA_CS_DISDEBUG (1<<29)
+#define DMA_CS_WAIT_FOR_OUTSTANDING_WRITES (1<<28)
 #define DMA_CS_INT      (1<<2)
 #define DMA_CS_END      (1<<1)
 #define DMA_CS_ACTIVE   (1<<0)

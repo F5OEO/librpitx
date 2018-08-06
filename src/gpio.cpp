@@ -251,7 +251,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	if (solution_count > 0)
 	{
 		PllFixDivider = best_divider;
-		//fprintf(stderr, " multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f \n", Frequency * best_divider * xtal_freq_recip, best_divider, (double)Frequency * best_divider / 1e6,frac_multiplier*xtal_freq_recip/(double)divider);
+		fprintf(stderr, " multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f \n", Frequency * best_divider * xtal_freq_recip, best_divider, (double)Frequency * best_divider / 1e6,frac_multiplier*xtal_freq_recip/(double)divider);
 		return 0;
 	}
 	else
