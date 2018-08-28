@@ -92,6 +92,8 @@ class generalgpio:public gpio
 #define CORECLK_DIV       (0x0c/4)
 #define GPCLK_CNTL        (0x70/4)
 #define GPCLK_DIV         (0x74/4)
+#define GPCLK_CNTL_2	 (0x80/4)
+#define GPCLK_DIV_2      (0x84/4)
 #define EMMCCLK_CNTL     (0x1C0/4)
 #define EMMCCLK_DIV      (0x1C4/4)
 
