@@ -127,7 +127,7 @@ int dma::start()
 	dma_reg.gpioreg[DMA_CONBLK_AD+channel*0x40]=mem_virt_to_phys((void*)cbarray ); // reset to beginning 
 	dma_reg.gpioreg[DMA_DEBUG+channel*0x40] = 7; // clear debug error flags
 	usleep(100);
-	dma_reg.gpioreg[DMA_CS+channel*0x40] = DMA_CS_PRIORITY(15) | DMA_CS_PANIC_PRIORITY(15) | DMA_CS_DISDEBUG |DMA_CS_ACTIVE;
+	dma_reg.gpioreg[DMA_CS+channel*0x40] = DMA_CS_PRIORITY(7) | DMA_CS_PANIC_PRIORITY(7) | DMA_CS_DISDEBUG |DMA_CS_ACTIVE;
 	return 0;
 }
 
@@ -235,7 +235,7 @@ int bufferdma::GetUserMemIndex()
 	
 	int IndexAvailable=-1;
 	//fprintf(stderr,"Avail=%d\n",GetBufferAvailable());
-	if(GetBufferAvailable())
+	if(GetBufferAvailable()>0)
 	{
 		IndexAvailable=last_sample+1;
 		if(IndexAvailable>=(int)buffersize) IndexAvailable=0;	

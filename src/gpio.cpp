@@ -798,7 +798,7 @@ int pcmgpio::SetPrediv(int predivisor) //Carefull we use a 10 fixe divisor for n
 	usleep(100);
 	gpioreg[PCM_CS_A] |= 1 << 4 | 1 << 3; // Clear FIFOs
 	usleep(100);
-	gpioreg[PCM_DREQ_A] = 64 << 24 | 64 << 8; //TX Fifo PCM=64 DMA Req when one slot is free?
+	gpioreg[PCM_DREQ_A] = 64 << 24 | 64 << 8; //TX Fifo PCM=64 DMA Req when one slot is free? : Fixme 
 	usleep(100);
 	gpioreg[PCM_CS_A] |= 1 << 9; // Enable DMA
 	usleep(100);

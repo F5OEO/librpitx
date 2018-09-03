@@ -19,15 +19,20 @@ This program is free software: you can redistribute it and/or modify
 #include "stdio.h"
 #include "phasedmasync.h"
 #include <unistd.h>
+#include <time.h>
 
-phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRate,int NumberOfPhase,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,2,1) // Number of phase between 2 and 16
+
+//Stable tune for this pwm mode is up to 90MHZ
+
+phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRateIn,int NumberOfPhase,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,2,1) // Number of phase between 2 and 16
 {
-	
+	SampleRate=SampleRateIn;
 	SetMode(pwm1pinrepeat);
 	pwmgpio::SetPllNumber(clk_plla,0);
 
 	tunefreq=TuneFrequency*NumberOfPhase;
-	
+	#define MAX_PWM_RATE 360000000
+	if(tunefreq>MAX_PWM_RATE) fprintf(stderr,"Critical error : Frequency to high > %d\n",MAX_PWM_RATE/NumberOfPhase);
 	if((NumberOfPhase==2)||(NumberOfPhase==4)||(NumberOfPhase==8)||(NumberOfPhase==16)||(NumberOfPhase==32))
 		NumbPhase=NumberOfPhase;
 	else
@@ -49,7 +54,7 @@ phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Number
 	
 	pwmgpio::clk.gpioreg[PWMCLK_CNTL]= 0x5A000000 | (pwmgpio::Mash << 9) | ((clkgpio::PllFixDivider)<<12)| pwmgpio::pllnumber|(1 << 4)  ; //4 is START CLK
 	usleep(100);
-	pwmgpio::SetPrediv(32);	//SetMode should be called before
+	pwmgpio::SetPrediv(NumberOfPhase);	//Originaly 32 but To minimize jitter , we set minimal buffer to repeat 
 	
 	
 
@@ -77,7 +82,7 @@ phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRate,int Number
 	for(int i=0;i<NumbPhase;i++)	
 	{
 		TabPhase[i]=ZeroPhase;
-		fprintf(stderr,"Phase[%d]=%x\n",i,TabPhase[i]);
+		//fprintf(stderr,"Phase[%d]=%x\n",i,TabPhase[i]);
 		ZeroPhase=(ZeroPhase<<1)|(ZeroPhase>>31);
 	}
 
@@ -108,7 +113,7 @@ void phasedmasync::SetDmaAlgo()
 			
 			
 			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
-			cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
+			cbp->src = mem_virt_to_phys(&usermem[(samplecnt+1)*registerbysample]);//mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
 			cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
 			cbp->length = 4;
 			cbp->stride = 0;
@@ -125,10 +130,67 @@ void phasedmasync::SetDmaAlgo()
 void phasedmasync::SetPhase(uint32_t Index,int Phase)
 {
 	Index=Index%buffersize;
-	Phase=Phase%NumbPhase;
+	Phase=(Phase+NumbPhase)%NumbPhase;
 	sampletab[Index]=TabPhase[Phase];
 	PushSample(Index);
 	
+}
+
+
+void phasedmasync::SetPhaseSamples(int *sample,size_t Size)
+{
+	size_t NbWritten=0;
+	int OSGranularity=100;
+	
+	
+	long int start_time;
+	long time_difference=0;
+	struct timespec gettime_now;
+
+
+	int debug=1;		
+	
+	while(NbWritten<Size)
+	{
+		if(debug>0)
+		{	
+		clock_gettime(CLOCK_REALTIME, &gettime_now);
+		start_time = gettime_now.tv_nsec;	
+		}
+		int Available=GetBufferAvailable();
+		//printf("Available before=%d\n",Available);		
+		int TimeToSleep=1e6*((int)buffersize*3/4-Available)/(float)SampleRate/*-OSGranularity*/; // Sleep for theorically fill 3/4 of Fifo
+		if(TimeToSleep>0)
+		{
+			//fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
+			usleep(TimeToSleep);
+		}
+		else
+		{
+			//fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			//sched_yield();
+		}
+
+		if(debug>0)
+		{	
+		clock_gettime(CLOCK_REALTIME, &gettime_now);
+		time_difference = gettime_now.tv_nsec - start_time;
+		if(time_difference<0) time_difference+=1E9;
+		//fprintf(stderr,"Available %d Measure samplerate=%d\n",GetBufferAvailable(),(int)((GetBufferAvailable()-Available)*1e9/time_difference));
+		debug--;	
+		}
+		Available=GetBufferAvailable();
+		
+		int Index=GetUserMemIndex();
+		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
+		//printf("Available after=%d Timetosleep %d To Write %d\n",Available,TimeToSleep,ToWrite);		
+		for(int i=0;i<ToWrite;i++)
+		{
+			
+			SetPhase(Index+i,sample[NbWritten++]);
+		}
+		
+	}
 }
 
 

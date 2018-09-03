@@ -161,7 +161,7 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmon
 		}
 		else
 		{
-			sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK
+			sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK : Fixme : do not work with clk2
 		}
 	
 		//fprintf(stderr,"amp%f %d\n",mydsp.amplitude,IntAmplitudePAD);
