@@ -28,7 +28,7 @@ phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRateIn,int Numb
 {
 	SampleRate=SampleRateIn;
 	SetMode(pwm1pinrepeat);
-	pwmgpio::SetPllNumber(clk_plla,0);
+	pwmgpio::SetPllNumber(clk_pllc,0);
 
 	tunefreq=TuneFrequency*NumberOfPhase;
 	#define MAX_PWM_RATE 360000000

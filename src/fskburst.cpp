@@ -73,7 +73,7 @@ This program is free software: you can redistribute it and/or modify
 
 				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP ;
 				cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]);
-				cbp->dst = 0x7E000000 + (PLLA_FRAC<<2) + CLK_BASE ; 
+				cbp->dst = 0x7E000000 + (PLLC_FRAC<<2) + CLK_BASE ; 
 				cbp->length = 4;
 				cbp->stride = 0;
 				cbp->next = mem_virt_to_phys(cbp + 1);

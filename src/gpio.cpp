@@ -87,6 +87,7 @@ int clkgpio::SetPllNumber(int PllNo, int MashType)
 	else
 		Mash = 0;
 	gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber /*|(1 << 5)*/; //5 is Reset CLK
+	usleep(100);
 	gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber /*|(1 << 5)*/; //5 is Reset CLK
 	usleep(100);
 	Pllfrequency = GetPllFrequency(pllnumber);
@@ -124,6 +125,7 @@ int clkgpio::SetClkDivFrac(uint32_t Div, uint32_t Frac)
 {
 
 	gpioreg[GPCLK_DIV] = 0x5A000000 | ((Div) << 12) | Frac;
+	usleep(100);	
 	gpioreg[GPCLK_DIV_2] = 0x5A000000 | ((Div) << 12) | Frac;
 	usleep(100);
 	fprintf(stderr, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
@@ -136,9 +138,9 @@ int clkgpio::SetMasterMultFrac(uint32_t Mult, uint32_t Frac)
 {
 
 	//fprintf(stderr,"Master Mult %d Frac %d\n",Mult,Frac);
-	gpioreg[PLLA_CTRL] = (0x5a << 24) | (0x21 << 12) | Mult; //PDIV=1
+	gpioreg[PLLC_CTRL] = (0x5a << 24) | (0x21 << 12) | Mult; //PDIV=1
 	usleep(100);
-	gpioreg[PLLA_FRAC] = 0x5A000000 | Frac;
+	gpioreg[PLLC_FRAC] = 0x5A000000 | Frac;
 
 	return 0;
 }
@@ -300,18 +302,20 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 
 		SetFrequency(0);
 		usleep(1000);
-		if ((gpioreg[CM_LOCK] & CM_LOCK_FLOCKA) > 0)
-			fprintf(stderr, "Master PLLA Locked\n");
+		if ((gpioreg[CM_LOCK] & CM_LOCK_FLOCKC) > 0)
+			fprintf(stderr, "Master PLLC Locked\n");
 		else
-			fprintf(stderr, "Warning ! Master PLLA NOT Locked !!!!\n");
+			fprintf(stderr, "Warning ! Master PLLC NOT Locked !!!!\n");
 		SetClkDivFrac(PllFixDivider, 0x0); // NO MASH !!!!
 		usleep(100);
 
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		usleep(100);
 		gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		usleep(100);
 		gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
 	}
@@ -338,26 +342,44 @@ void clkgpio::SetAdvancedPllMode(bool Advanced)
 	ModulateFromMasterPLL = Advanced;
 	if (ModulateFromMasterPLL)
 	{
-		SetPllNumber(clk_plla, 0);		 // Use PPL_A , Do not USE MASH which generates spurious
-		gpioreg[CM_PLLA] = 0x5A00022A; // Enable Plla_PER
+		//We must change Clk dependant from PLLC as we will modulate it
+		// switch the core over to PLLA
+       gpioreg[CORECLK_DIV]  = (0x5a<<24) | (4<<12) ; // core div 4
+       usleep(100);
+       gpioreg[CORECLK_CNTL] = (0x5a<<24) | (1<<4) | (4); // run, src=PLLA
+
+	   // switch the EMMC over to PLLD
+      
+       int clktmp;
+       clktmp = gpioreg[EMMCCLK_CNTL];
+       gpioreg[EMMCCLK_CNTL] = (0xF0F&clktmp) | (0x5a<<24) ; // clear run
+       usleep(100);
+       gpioreg[EMMCCLK_CNTL] = (0xF00&clktmp) | (0x5a<<24) | (6); // src=PLLD
+       usleep(100);
+       gpioreg[EMMCCLK_CNTL] = (0xF00&clktmp) | (0x5a<<24) | (1<<4) | (6); // run , src=PLLD
+
+	   
+		SetPllNumber(clk_pllc, 0);		 // Use PLL_C , Do not USE MASH which generates spurious
+		//gpioreg[CM_PLLA] = 0x5A00022A; // Enable PllA_PER
+		gpioreg[CM_PLLC] = 0x5A00022A; // Enable PllA_PER
 		usleep(100);
 
 		uint32_t ana[4];
 		for (int i = 3; i >= 0; i--)
 		{
-			ana[i] = gpioreg[(A2W_PLLA_ANA0 ) + i];
+			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
 		}
 
 		ana[1]&=~(1<<14); // No use prediv means Frequency
 		//ana[1] |= (1 << 14); // use prediv means Frequency*2
 		for (int i = 3; i >= 0; i--)
 		{
-			gpioreg[(A2W_PLLA_ANA0 ) + i] = (0x5A << 24) | ana[i];
+			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
 		}
 
 		usleep(100);
-		gpioreg[PLLA_CORE] = 0x5A000000|(1<<8);//Disable 
-		gpioreg[PLLA_PER] = 0x5A000001; // Divisor
+		gpioreg[PLLC_CORE0] = 0x5A000000|(1<<8);//Disable 
+		gpioreg[PLLC_PER] = 0x5A000001; // Divisor
 		usleep(100);
 	}
 }
@@ -367,14 +389,14 @@ void clkgpio::SetPLLMasterLoop(int Ki,int Kp,int Ka)
 	uint32_t ana[4];
 		for (int i = 3; i >= 0; i--)
 		{
-			ana[i] = gpioreg[(A2W_PLLA_ANA0 ) + i];
+			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
 		}
 
 		ana[1]=(Ki<<A2W_PLL_KI_SHIFT)|(Kp<<A2W_PLL_KP_SHIFT)|(Ka<<A2W_PLL_KA_SHIFT);
 		fprintf(stderr,"Loop parameter =%x\n",ana[1]);
 		for (int i = 3; i >= 0; i--)
 		{
-			gpioreg[(A2W_PLLA_ANA0 ) + i] = (0x5A << 24) | ana[i];
+			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
 		}
 		usleep(100)	;
 	//Only PLLA for now

@@ -97,6 +97,79 @@ class generalgpio:public gpio
 #define EMMCCLK_CNTL     (0x1C0/4)
 #define EMMCCLK_DIV      (0x1C4/4)
 
+#define CM_VPUCTL		0x008
+#define CM_VPUDIV		0x00c
+#define CM_SYSCTL		0x010
+#define CM_SYSDIV		0x014
+#define CM_PERIACTL		0x018
+#define CM_PERIADIV		0x01c
+#define CM_PERIICTL		0x020
+#define CM_PERIIDIV		0x024
+#define CM_H264CTL		0x028
+#define CM_H264DIV		0x02c
+#define CM_ISPCTL		0x030
+#define CM_ISPDIV		0x034
+#define CM_V3DCTL		0x038
+#define CM_V3DDIV		0x03c
+#define CM_CAM0CTL		0x040
+#define CM_CAM0DIV		0x044
+#define CM_CAM1CTL		0x048
+#define CM_CAM1DIV		0x04c
+#define CM_CCP2CTL		0x050
+#define CM_CCP2DIV		0x054
+#define CM_DSI0ECTL		0x058
+#define CM_DSI0EDIV		0x05c
+#define CM_DSI0PCTL		0x060
+#define CM_DSI0PDIV		0x064
+#define CM_DPICTL		0x068
+#define CM_DPIDIV		0x06c
+#define CM_GP0CTL		0x070
+#define CM_GP0DIV		0x074
+#define CM_GP1CTL		0x078
+#define CM_GP1DIV		0x07c
+#define CM_GP2CTL		0x080
+#define CM_GP2DIV		0x084
+#define CM_HSMCTL		0x088
+#define CM_HSMDIV		0x08c
+#define CM_OTPCTL		0x090
+#define CM_OTPDIV		0x094
+#define CM_PCMCTL		0x098
+#define CM_PCMDIV		0x09c
+#define CM_PWMCTL		0x0a0
+#define CM_PWMDIV		0x0a4
+#define CM_SLIMCTL		0x0a8
+#define CM_SLIMDIV		0x0ac
+#define CM_SMICTL		0x0b0
+#define CM_SMIDIV		0x0b4
+/* no definition for 0x0b8  and 0x0bc */
+#define CM_TCNTCTL		0x0c0
+# define CM_TCNT_SRC1_SHIFT		12
+#define CM_TCNTCNT		0x0c4
+#define CM_TECCTL		0x0c8
+#define CM_TECDIV		0x0cc
+#define CM_TD0CTL		0x0d0
+#define CM_TD0DIV		0x0d4
+#define CM_TD1CTL		0x0d8
+#define CM_TD1DIV		0x0dc
+#define CM_TSENSCTL		0x0e0
+#define CM_TSENSDIV		0x0e4
+#define CM_TIMERCTL		0x0e8
+#define CM_TIMERDIV		0x0ec
+#define CM_UARTCTL		0x0f0
+#define CM_UARTDIV		0x0f4
+#define CM_VECCTL		0x0f8
+#define CM_VECDIV		0x0fc
+#define CM_PULSECTL		0x190
+#define CM_PULSEDIV		0x194
+#define CM_SDCCTL		0x1a8
+#define CM_SDCDIV		0x1ac
+#define CM_ARMCTL		0x1b0
+#define CM_AVEOCTL		0x1b8
+#define CM_AVEODIV		0x1bc
+#define CM_EMMCCTL		0x1c0
+#define CM_EMMCDIV		0x1c4
+
+
 #define CM_LOCK (0x114/4)
 # define CM_LOCK_FLOCKH			(1<<12)
 # define CM_LOCK_FLOCKD			(1<<11)
@@ -170,6 +243,7 @@ class generalgpio:public gpio
 #define XOSC_CTRL (0x1190/4)
 #define XOSC_FREQUENCY 19200000
 
+//Parent PLL
 enum {clk_gnd,clk_osc,clk_debug0,clk_debug1,clk_plla,clk_pllc,clk_plld,clk_hdmi};
 
 class clkgpio:public gpio

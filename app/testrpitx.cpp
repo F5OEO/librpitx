@@ -48,7 +48,7 @@ void SimpleTest(uint64_t Freq)
 
 	clkgpio clk;
 	clk.print_clock_tree();
-	clk.SetPllNumber(clk_plla,0);
+	clk.SetPllNumber(clk_pllc,0);
 	
 	//clk.SetAdvancedPllMode(true);
 	//clk.SetPLLMasterLoop(0,4,0);
@@ -189,41 +189,26 @@ void SimpleTestbpsk(uint64_t Freq)
 	
 	clkgpio clk;
 	clk.print_clock_tree();
-	int SR=100000;
-	int FifoSize=1024;
+	
+
+	int SR=250000;
+	int FifoSize=10000;
 	int NumberofPhase=2;
 	phasedmasync biphase(Freq,SR,NumberofPhase,14,FifoSize);
+	padgpio pad;
+		pad.setlevel(7);
 	int lastphase=0;
+	#define BURST_SIZE 100
+	int PhaseBuffer[BURST_SIZE];
 	while(running)
 	{
-		//usleep(FifoSize*1000000.0*1.0/(8.0*SR));
-		usleep(10);
-		int Available=biphase.GetBufferAvailable();
-		if(Available>256)
-		{	
-			int Index=biphase.GetUserMemIndex();
-			
-				
-				for(int i=0;i<Available;i++)
-				{
-					int phase=(rand()%NumberofPhase);
-					biphase.SetPhase(Index+i,phase);
-				}
-				/* 					
-				for(int i=0;i<Available/2;i++)
-				{
-					int phase=2*(rand()%NumberofPhase/2);
-					biphase.SetPhase(Index+i*2,(phase+lastphase)/2);
-					biphase.SetPhase(Index+i*2+1,phase);
-					lastphase=phase;
-				}*/
-				/*for(int i=0;i<Available;i++)
-				{
-					lastphase=(lastphase+1)%NumberofPhase;
-					biphase.SetPhase(Index+i,lastphase);
-				}*/
-			
+		for(int i=0;i<BURST_SIZE;i++)
+		{
+				int phase=(rand()%NumberofPhase);
+				PhaseBuffer[i]=phase;
 		}
+		biphase.SetPhaseSamples(PhaseBuffer,BURST_SIZE);
+		
 	}
 	biphase.stop();
 }
@@ -408,9 +393,9 @@ int main(int argc, char* argv[])
     }
 
 	//SimpleTest(Freq);
-	//SimpleTestbpsk(Freq);
+	SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
-	SimpleTestDMA(Freq);
+	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
 	//SimpleTestOOK(Freq);
 	//SimpleTestBurstFsk(Freq);
