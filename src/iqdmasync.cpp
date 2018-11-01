@@ -23,12 +23,13 @@ This program is free software: you can redistribute it and/or modify
 #include <sched.h>
 
 
-iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,4,3)
+iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize,int Mode):bufferdma(Channel,FifoSize,4,3)
 {
 // Usermem :
 // FRAC frequency
 // PAD Amplitude
 // FSEL for amplitude 0
+	ModeIQ=Mode;
 	SampleRate=SR;
 	tunefreq=TuneFrequency;
 	clkgpio::SetAdvancedPllMode(true);
@@ -168,6 +169,32 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmon
 	PushSample(Index);
 }
 
+void iqdmasync::SetFreqAmplitudeSample(uint32_t Index,std::complex<float> sample,int Harmonic)
+{
+	Index=Index%buffersize;	
+	
+	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(sample.real()/Harmonic); //Frequency
+	int IntAmplitude=(int)(sample.imag()); //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
+
+	int IntAmplitudePAD=0;
+	if(IntAmplitude>7) IntAmplitudePAD=7;
+	if(IntAmplitude<0) IntAmplitudePAD=0;
+	sampletab[Index*registerbysample+1]=(0x5A<<24) + (IntAmplitudePAD&0x7) + (1<<4) + (0<<3); // Amplitude PAD
+
+	//sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK
+	if(IntAmplitude==-1)
+		{
+			sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (0 << 12); //Pin is in -> Amplitude 0
+		}
+		else
+		{
+			sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK : Fixme : do not work with clk2
+		}
+	
+		//fprintf(stderr,"amp%f %d\n",mydsp.amplitude,IntAmplitudePAD);
+	PushSample(Index);	
+}
+
 void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmonic=1)
 {
 	size_t NbWritten=0;
@@ -215,12 +242,19 @@ void iqdmasync::SetIQSamples(std::complex<float> *sample,size_t Size,int Harmoni
 		int Index=GetUserMemIndex();
 		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
 		//printf("Available after=%d Timetosleep %d To Write %d\n",Available,TimeToSleep,ToWrite);		
-		for(int i=0;i<ToWrite;i++)
+		if(ModeIQ==MODE_IQ)
 		{
-			
-			SetIQSample(Index+i,sample[NbWritten++],Harmonic);
+			for(int i=0;i<ToWrite;i++)
+			{
+				SetIQSample(Index+i,sample[NbWritten++],Harmonic);
+			}
 		}
-		
+		if(ModeIQ==MODE_FREQ_A)
+		{	for(int i=0;i<ToWrite;i++)
+			{
+				SetFreqAmplitudeSample(Index+i,sample[NbWritten++],Harmonic);
+			}
+		}
 	}
 }
 
