@@ -150,9 +150,9 @@ void iqdmasync::SetIQSample(uint32_t Index,std::complex<float> sample,int Harmon
 	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(mydsp.frequency/Harmonic); //Frequency
 	int IntAmplitude=(int)(mydsp.amplitude*8.0)-1; //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
 
-	int IntAmplitudePAD=0;
+	int IntAmplitudePAD=IntAmplitude;
 	if(IntAmplitude>7) IntAmplitudePAD=7;
-	if(IntAmplitude<0) IntAmplitudePAD=0;
+	if(IntAmplitude<0) {IntAmplitudePAD=0;IntAmplitude=-1;}
 	sampletab[Index*registerbysample+1]=(0x5A<<24) + (IntAmplitudePAD&0x7) + (1<<4) + (0<<3); // Amplitude PAD
 
 	//sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK
@@ -174,12 +174,14 @@ void iqdmasync::SetFreqAmplitudeSample(uint32_t Index,std::complex<float> sample
 	Index=Index%buffersize;	
 	
 	sampletab[Index*registerbysample]=(0x5A<<24)|GetMasterFrac(sample.real()/Harmonic); //Frequency
-	int IntAmplitude=(int)(sample.imag()); //Fixme 1e4 seems to work with SSB but should be an issue with classical IQ file 
+	int IntAmplitude=(int)roundf(sample.imag())-1; //0->8 become -1->7
 
-	int IntAmplitudePAD=0;
+	int IntAmplitudePAD=IntAmplitude;
 	if(IntAmplitude>7) IntAmplitudePAD=7;
-	if(IntAmplitude<0) IntAmplitudePAD=0;
+	if(IntAmplitude<0) {IntAmplitudePAD=0;IntAmplitude=-1;}
 	sampletab[Index*registerbysample+1]=(0x5A<<24) + (IntAmplitudePAD&0x7) + (1<<4) + (0<<3); // Amplitude PAD
+
+	//fprintf(stderr,"amp%d PAD %d\n",IntAmplitude,IntAmplitudePAD);
 
 	//sampletab[Index*registerbysample+2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Alternate is CLK
 	if(IntAmplitude==-1)
