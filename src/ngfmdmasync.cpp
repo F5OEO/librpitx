@@ -23,7 +23,7 @@ This program is free software: you can redistribute it and/or modify
 #include <sched.h>
 #include <time.h>
 
-ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,2,1)
+ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize,bool UsePwm):bufferdma(Channel,FifoSize,2,1)
 {
 
 	SampleRate=SR;
@@ -32,7 +32,7 @@ ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t
 	clkgpio::SetCenterFrequency(TuneFrequency,SampleRate); // Write Mult Int and Frac : FixMe carrier is already there
 	clkgpio::SetFrequency(0);
 	clkgpio::enableclk(4); // GPIO 4 CLK by default
-	syncwithpwm=false;
+	syncwithpwm=UsePwm;
 	
 	if(syncwithpwm)
 	{

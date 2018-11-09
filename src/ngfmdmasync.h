@@ -12,7 +12,7 @@ class ngfmdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	bool syncwithpwm;
 	uint32_t SampleRate;
 	public:
-	ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize);
+	ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize,bool UsePwm=false);
 	~ngfmdmasync();
 	void SetDmaAlgo();
 	
