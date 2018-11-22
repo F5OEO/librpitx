@@ -116,7 +116,7 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
 		break;
 	}
-	fprintf(stderr, "Freq = %lld\n", Freq);
+	fprintf(stderr, "Freq = %lu\n", Freq);
 
 	return Freq;
 }
