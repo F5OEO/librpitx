@@ -22,6 +22,7 @@ This program is free software: you can redistribute it and/or modify
 #include <math.h>
 #include <time.h>
 #include <sched.h>
+#include <stdlib.h>
 
 
 amdmasync::amdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize,3,2)
