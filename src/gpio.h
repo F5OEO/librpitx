@@ -1,7 +1,7 @@
 #ifndef DEF_GPIO
 #define DEF_GPIO
 #include "stdint.h"
-
+#include <cstdio>
 
 
 
@@ -9,9 +9,10 @@ class gpio
 {
     
     public:
-    volatile uint32_t *gpioreg;
+    volatile uint32_t *gpioreg=NULL;
+	uint32_t gpiolen;
     gpio(uint32_t base, uint32_t len);
-    
+    ~gpio();
     uint32_t GetPeripheralBase();
 };
 

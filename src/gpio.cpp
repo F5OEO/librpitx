@@ -29,13 +29,15 @@ gpio::gpio(uint32_t base, uint32_t len)
 {
 
 	gpioreg = (uint32_t *)mapmem(base, len);
-		
-	/*int mhandle=mbox_open();
-	get_clocks(mhandle);
-	mbox_close(mhandle);
-	*/
+	gpiolen=len;	
 }
 
+gpio::~gpio()
+{
+	if(gpioreg!=NULL)
+		unmapmem((void*)gpioreg,gpiolen);
+	
+}
 uint32_t gpio::GetPeripheralBase()
 {
 	RASPBERRY_PI_INFO_T info;
@@ -70,7 +72,7 @@ clkgpio::clkgpio() : gpio(GetPeripheralBase() + CLK_BASE, CLK_LEN)
 clkgpio::~clkgpio()
 {
 	gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (0 << 4); //4 is START CLK
-	gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (0 << 4); //4 is START CLK
+	//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (0 << 4); //4 is START CLK
 	usleep(100);
 }
 
@@ -116,7 +118,7 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
 		break;
 	}
-	fprintf(stderr, "Freq = %lu\n", Freq);
+	fprintf(stderr, "Freq = %llu\n", Freq);
 
 	return Freq;
 }
