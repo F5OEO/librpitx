@@ -49,7 +49,7 @@ void *mapmem(unsigned base, unsigned size)
    base = base - offset;
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-      printf("can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
+      fprintf(stderr,"can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
       exit (-1);
    }
    void *mem = mmap(
@@ -60,10 +60,10 @@ void *mapmem(unsigned base, unsigned size)
       mem_fd,
       base);
 #ifdef DEBUG
-   printf("base=0x%x, mem=%p\n", base, mem);
+   fprintf(stderr,"base=0x%x, mem=%p\n", base, mem);
 #endif
    if (mem == MAP_FAILED) {
-      printf("mmap error %p\n", mem);
+      fprintf(stderr,"mmap error %p\n", mem);
       exit (-1);
    }
    close(mem_fd);
@@ -90,13 +90,13 @@ static int mbox_property(int file_desc, void *buf)
    int ret_val = ioctl(file_desc, IOCTL_MBOX_PROPERTY, buf);
 
    if (ret_val < 0) {
-      printf("ioctl_set_msg failed:%d\n", ret_val);
+      fprintf(stderr,"ioctl_set_msg failed:%d\n", ret_val);
    }
 
 #ifdef DEBUG
    unsigned *p = buf; int i; unsigned size = *(unsigned *)buf;
    for (i=0; i<size/4; i++)
-      printf("%04x: 0x%08x\n", i*sizeof *p, p[i]);
+      fprintf(stderrn,"%04x: 0x%08x\n", i*sizeof *p, p[i]);
 #endif
    return ret_val;
 }
@@ -274,7 +274,7 @@ int mbox_open() {
     // Open a char device file used for communicating with kernel mbox driver.
     file_desc = open(VCIO_DEVICE_FILE_NAME, 0);
     if(file_desc >= 0) {
-        printf("Using mbox device " VCIO_DEVICE_FILE_NAME ".\n");
+        fprintf(stderr,"Using mbox device " VCIO_DEVICE_FILE_NAME ".\n");
         return file_desc;
     }
     
@@ -282,14 +282,14 @@ int mbox_open() {
     unlink(LOCAL_DEVICE_FILE_NAME);
     if(mknod(LOCAL_DEVICE_FILE_NAME, S_IFCHR|0600, makedev(MAJOR_NUM_A, 0)) >= 0 &&
         (file_desc = open(LOCAL_DEVICE_FILE_NAME, 0)) >= 0) {
-        printf("Using local mbox device file with major %d.\n", MAJOR_NUM_A);
+        fprintf(stderr,"Using local mbox device file with major %d.\n", MAJOR_NUM_A);
         return file_desc;
     }
 
     unlink(LOCAL_DEVICE_FILE_NAME);
     if(mknod(LOCAL_DEVICE_FILE_NAME, S_IFCHR|0600, makedev(MAJOR_NUM_B, 0)) >= 0 &&
         (file_desc = open(LOCAL_DEVICE_FILE_NAME, 0)) >= 0) {
-        printf("Using local mbox device file with major %d.\n", MAJOR_NUM_B);
+        fprintf(stderr,"Using local mbox device file with major %d.\n", MAJOR_NUM_B);
         return file_desc;
     }
 

@@ -96,9 +96,7 @@ void dma::GetRpiInfo()
 dma::~dma()
 {
 		stop();
-		/*
-        unmapmem(mbox.virt_addr, NumPages * PAGE_SIZE);
-		*/
+		
 		mem_unlock(mbox.handle, mbox.mem_ref);
 		
 		mem_free(mbox.handle, mbox.mem_ref);

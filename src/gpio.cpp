@@ -90,8 +90,8 @@ int clkgpio::SetPllNumber(int PllNo, int MashType)
 		Mash = 0;
 	gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber /*|(1 << 5)*/; //5 is Reset CLK
 	usleep(100);
-	gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber /*|(1 << 5)*/; //5 is Reset CLK
-	usleep(100);
+	//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber /*|(1 << 5)*/; //5 is Reset CLK
+	//usleep(100);
 	Pllfrequency = GetPllFrequency(pllnumber);
 	return 0;
 }
@@ -128,8 +128,8 @@ int clkgpio::SetClkDivFrac(uint32_t Div, uint32_t Frac)
 
 	gpioreg[GPCLK_DIV] = 0x5A000000 | ((Div) << 12) | Frac;
 	usleep(100);	
-	gpioreg[GPCLK_DIV_2] = 0x5A000000 | ((Div) << 12) | Frac;
-	usleep(100);
+	//gpioreg[GPCLK_DIV_2] = 0x5A000000 | ((Div) << 12) | Frac;
+	//usleep(100);
 	fprintf(stderr, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
 	//gpioreg[GPCLK_CNTL]= 0x5A000000 | (Mash << 9) | pllnumber |(1<<4)  ; //4 is START CLK
 	//	usleep(10);
@@ -314,18 +314,18 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
-		gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		usleep(100);
+		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		//usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
-		gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		usleep(100);
+		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		//usleep(100);
 	}
 	else
 	{
 		GetPllFrequency(pllnumber);											   // Be sure to get the master PLL frequency
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 	}
 	return 0;
 }
@@ -334,9 +334,9 @@ void clkgpio::SetPhase(bool inversed)
 {
 	uint32_t StateBefore = clkgpio::gpioreg[GPCLK_CNTL];
 	clkgpio::gpioreg[GPCLK_CNTL] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 1 << 5;
-	clkgpio::gpioreg[GPCLK_CNTL_2] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 1 << 5;
+	//clkgpio::gpioreg[GPCLK_CNTL_2] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 1 << 5;
 	clkgpio::gpioreg[GPCLK_CNTL] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 0 << 5;
-	clkgpio::gpioreg[GPCLK_CNTL_2] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 0 << 5;
+	//clkgpio::gpioreg[GPCLK_CNTL_2] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 0 << 5;
 }
 //Should inspect https://github.com/raspberrypi/linux/blob/ffd7bf4085b09447e5db96edd74e524f118ca3fe/drivers/clk/bcm/clk-bcm2835.c#L695
 void clkgpio::SetAdvancedPllMode(bool Advanced)
