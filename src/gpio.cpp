@@ -169,7 +169,7 @@ int clkgpio::SetFrequency(double Frequency)
 		if ((FreqDivider > 4096) || (FreqDivider < 2))
 			fprintf(stderr, "Frequency out of range\n");
 		printf("DIV/FRAC %u/%u \n", FreqDivider, FreqFractionnal);
-
+		
 		SetClkDivFrac(FreqDivider, FreqFractionnal);
 	}
 
@@ -197,67 +197,66 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	// Choose an integer divider for GPCLK0
 	//
 	// There may be improvements possible to this algorithm.
-	double xtal_freq_recip = 1.0 / 19.2e6; // todo PPM correction
+	// Constants taken https://github.com/raspberrypi/linux/blob/ffd7bf4085b09447e5db96edd74e524f118ca3fe/drivers/clk/bcm/clk-bcm2835.c#L1763
+	#define MIN_PLL_RATE 400e6
+	#define MIN_PLL_RATE_USE_PDIV 1700e6
+	#define MAX_PLL_RATE 3e9
+	#define XTAL_RATE 19.2e6
+	double xtal_freq_recip = 1.0 / XTAL_RATE; // todo PPM correction
 	int best_divider = 0;
 
 	int solution_count = 0;
 	//printf("carrier:%3.2f ",carrier_freq/1e6);
-	int divider, min_int_multiplier, max_int_multiplier, fom, int_multiplier, best_fom = 0;
-	double frac_multiplier;
+	int divider=0, min_int_multiplier, max_int_multiplier, fom, int_multiplier, best_fom = 0;
+	
 	best_divider = 0;
-	for (divider = 2; divider < 4096; divider++)//1 is allowed only for MASH=0
+	bool cross_boundary=false;
+	if(Frequency<MIN_PLL_RATE/4095)
 	{
-		if (Frequency * divider < 600e6)
-			continue; // widest accepted frequency range
-		if (Frequency * divider > 1700e6) // By Experiment on Rpi3B
-			break;
-
-		max_int_multiplier = ((int)((double)(Frequency + Bandwidth) * divider * xtal_freq_recip));
-		min_int_multiplier = ((int)((double)(Frequency - Bandwidth) * divider * xtal_freq_recip));
-		if (min_int_multiplier != max_int_multiplier)
+		fprintf(stderr, "Frequency too low !!!!!!\n"); 
+		return -1;
+	} 
+	if(Frequency*2>MAX_PLL_RATE)
+	{
+		fprintf(stderr, "Frequency too high !!!!!!\n");
+		return -1;
+	} 
+	if(Frequency*2>MIN_PLL_RATE_USE_PDIV) 
+		best_divider=1; // We will use PREDIV 2 for PLL
+	else
+	{
+		for (divider = 4095; divider > 1; divider--)//1 is allowed only for MASH=0
 		{
-			//fprintf(stderr,"Warning : cross boundary frequency\n");
-			continue; // don't cross integer boundary	
-		}
-		//	continue; // don't cross integer boundary
+			if (Frequency * divider < MIN_PLL_RATE)
+				continue; // widest accepted frequency range
+			if (Frequency * divider > MIN_PLL_RATE_USE_PDIV) // By Experiment on Rpi3B
+			{
+				continue;
+			}
+			max_int_multiplier = ((int)((double)(Frequency + Bandwidth) * divider * xtal_freq_recip));
+			min_int_multiplier = ((int)((double)(Frequency - Bandwidth) * divider * xtal_freq_recip));
+			if (min_int_multiplier != max_int_multiplier)
+			{
+				//fprintf(stderr,"Warning : cross boundary frequency\n");
+				best_divider=divider; 
+				cross_boundary=true;
+				continue; // don't cross integer boundary	
+			}
+			else
+			{
+				cross_boundary=false;
+				best_divider=divider; 
+				break;
+			}
 
-		solution_count++; // if we make it here the solution is acceptable,
-		fom = 0;		  // but we want a good solution
-
-		if (Frequency * divider > 900e6)
-			fom++; // prefer freqs closer to 1000
-		if (Frequency * divider < 1100e6)
-			fom++;
-		if (Frequency * divider > 800e6)
-			fom++; // accepted frequency range
-		if (Frequency * divider < 1200e6)
-			fom++;
-
-		frac_multiplier = ((double)(Frequency)*divider * xtal_freq_recip);
-		int_multiplier = (int)frac_multiplier;
-		frac_multiplier = frac_multiplier - int_multiplier;
-		//if ((int_multiplier % 2) == 0)
-		//	fom++;
-		//if (((frac_multiplier > 0.7) && (frac_multiplier < 1.0))||((frac_multiplier > 0.0) && (frac_multiplier < 0.3)))
-		if (((frac_multiplier > 0.2) && (frac_multiplier < 0.3))||((frac_multiplier > 0.7) && (frac_multiplier < 0.8)))
-		//if (((frac_multiplier > 0.4) && (frac_multiplier < 0.6)))
-			fom += 2; // prefer mulipliers away from integer boundaries
-
-		//if( divider%2 == 1 ) fom+=2; // prefer odd dividers
-		// Even and odd dividers could have different harmonic content,
-		// but the latest measurements have shown no significant difference.
-
-		//printf("Try multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f\n",Frequency*divider*xtal_freq_recip,divider,(double)Frequency*divider/1e6,frac_multiplier*19.2e6/(double)divider);
-		if (fom > best_fom)
-		{
-			best_fom = fom;
-			best_divider = divider;
+			
 		}
 	}
-	if (solution_count > 0)
+	if (best_divider!=0)
 	{
 		PllFixDivider = best_divider;
-		fprintf(stderr, " multiplier:%f divider:%d VCO: %4.1fMHz Spurious %f \n", Frequency * best_divider * xtal_freq_recip, best_divider, (double)Frequency * best_divider / 1e6,frac_multiplier*xtal_freq_recip/(double)divider);
+		if(cross_boundary) fprintf(stderr,"Warning : cross boundary frequency\n");
+		fprintf(stderr, "Found solution : divider:%d VCO: %4.1fMHz\n", best_divider,Frequency * best_divider * xtal_freq_recip);
 		return 0;
 	}
 	else
@@ -308,9 +307,44 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 			fprintf(stderr, "Master PLLC Locked\n");
 		else
 			fprintf(stderr, "Warning ! Master PLLC NOT Locked !!!!\n");
-		SetClkDivFrac(PllFixDivider, 0x0); // NO MASH !!!!
-		usleep(100);
+		
+			
+		if(PllFixDivider==1)
+		{
+			//We will use PDIV by 2, means like we have a 2 times more	
+			SetClkDivFrac(2, 0x0); // NO MASH !!!!
+			
+			
+		}
+		else
+		{
+			SetClkDivFrac(PllFixDivider, 0x0); // NO MASH !!!!
+			
+		}
 
+		// Apply PREDIV for PLL or not
+		uint32_t ana[4];
+		for (int i = 3; i >= 0; i--)
+		{
+			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
+		}
+
+		if(PllFixDivider==1) 
+		{
+			fprintf(stderr,"Use PLL Prediv\n");
+			ana[1] |= (1 << 14); // use prediv means Frequency*2
+		}
+		else	
+		{
+		    ana[1]&=~(1<<14); // No use prediv means Frequency
+		}
+		for (int i = 3; i >= 0; i--)
+		{
+			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
+			usleep(100);
+		}
+
+		
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
@@ -362,24 +396,11 @@ void clkgpio::SetAdvancedPllMode(bool Advanced)
 
 	   
 		SetPllNumber(clk_pllc, 0);		 // Use PLL_C , Do not USE MASH which generates spurious
-		//gpioreg[CM_PLLA] = 0x5A00022A; // Enable PllA_PER
-		gpioreg[CM_PLLC] = 0x5A00022A; // Enable PllA_PER
+		
+		gpioreg[CM_PLLC] = 0x5A00022A; // Enable PllC_PER
 		usleep(100);
 
-		uint32_t ana[4];
-		for (int i = 3; i >= 0; i--)
-		{
-			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
-		}
-
-		ana[1]&=~(1<<14); // No use prediv means Frequency
-		//ana[1] |= (1 << 14); // use prediv means Frequency*2
-		for (int i = 3; i >= 0; i--)
-		{
-			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
-		}
-
-		usleep(100);
+		
 		gpioreg[PLLC_CORE0] = 0x5A000000|(1<<8);//Disable 
 		gpioreg[PLLC_PER] = 0x5A000001; // Divisor
 		usleep(100);
