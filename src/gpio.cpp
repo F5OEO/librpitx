@@ -66,7 +66,9 @@ dmagpio::dmagpio() : gpio(GetPeripheralBase() + DMA_BASE, DMA_LEN)
 // ***************** CLK Registers *****************************************
 clkgpio::clkgpio() : gpio(GetPeripheralBase() + CLK_BASE, CLK_LEN)
 {
-	SetppmFromNTP();
+	//SetppmFromNTP();
+	padgpio level;
+	level.setlevel(7); //MAX Power 
 }
 
 clkgpio::~clkgpio()
@@ -118,7 +120,7 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
 		break;
 	}
-	fprintf(stderr, "Freq = %llu\n", Freq);
+	//fprintf(stderr, "Freq = %llu\n", Freq);
 
 	return Freq;
 }
@@ -128,11 +130,9 @@ int clkgpio::SetClkDivFrac(uint32_t Div, uint32_t Frac)
 
 	gpioreg[GPCLK_DIV] = 0x5A000000 | ((Div) << 12) | Frac;
 	usleep(100);	
-	//gpioreg[GPCLK_DIV_2] = 0x5A000000 | ((Div) << 12) | Frac;
-	//usleep(100);
-	fprintf(stderr, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
-	//gpioreg[GPCLK_CNTL]= 0x5A000000 | (Mash << 9) | pllnumber |(1<<4)  ; //4 is START CLK
-	//	usleep(10);
+	
+	//fprintf(stderr, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
+	
 	return 0;
 }
 
@@ -151,14 +151,17 @@ int clkgpio::SetFrequency(double Frequency)
 {
 	if (ModulateFromMasterPLL)
 	{
-		double FloatMult = ((double)(CentralFrequency + Frequency) * PllFixDivider) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); // -ppm : compensate ppm
+
+		double FloatMult=0;
+		if(PllFixDivider==1) //Using PDIV thus frequency/2
+		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+		else
+		 	FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
 		uint32_t freqctl = FloatMult * ((double)(1 << 20));
 		int IntMultiply = freqctl >> 20; // Need to be calculated to have a center frequency
 		freqctl &= 0xFFFFF;				 // Fractionnal is 20bits
-
 		uint32_t FracMultiply = freqctl & 0xFFFFF;
-		//uint32_t FracMultiply = 0.75*(1<<20);
-		
+
 		SetMasterMultFrac(IntMultiply, FracMultiply);
 	}
 	else
@@ -180,7 +183,11 @@ uint32_t clkgpio::GetMasterFrac(double Frequency)
 {
 	if (ModulateFromMasterPLL)
 	{
-		double FloatMult = ((double)(CentralFrequency + Frequency) * PllFixDivider) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6));
+		double FloatMult=0;
+		if(PllFixDivider==1) //Using PDIV thus frequency/2
+		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+		else
+		 	FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
 		uint32_t freqctl = FloatMult * ((double)(1 << 20));
 		int IntMultiply = freqctl >> 20; // Need to be calculated to have a center frequency
 		freqctl &= 0xFFFFF;				 // Fractionnal is 20bits
@@ -200,7 +207,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	// Constants taken https://github.com/raspberrypi/linux/blob/ffd7bf4085b09447e5db96edd74e524f118ca3fe/drivers/clk/bcm/clk-bcm2835.c#L1763
 	#define MIN_PLL_RATE 400e6
 	#define MIN_PLL_RATE_USE_PDIV 1700e6
-	#define MAX_PLL_RATE 3e9
+	#define MAX_PLL_RATE 4e9
 	#define XTAL_RATE 19.2e6
 	double xtal_freq_recip = 1.0 / XTAL_RATE; // todo PPM correction
 	int best_divider = 0;
@@ -208,7 +215,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	int solution_count = 0;
 	//printf("carrier:%3.2f ",carrier_freq/1e6);
 	int divider=0, min_int_multiplier, max_int_multiplier, fom, int_multiplier, best_fom = 0;
-	
+	double Multiplier=0.0;
 	best_divider = 0;
 	bool cross_boundary=false;
 	if(Frequency<MIN_PLL_RATE/4095)
@@ -221,8 +228,10 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 		fprintf(stderr, "Frequency too high !!!!!!\n");
 		return -1;
 	} 
-	if(Frequency*2>MIN_PLL_RATE_USE_PDIV) 
+	if(Frequency*2>MIN_PLL_RATE_USE_PDIV)
+	{ 
 		best_divider=1; // We will use PREDIV 2 for PLL
+	}	
 	else
 	{
 		for (divider = 4095; divider > 1; divider--)//1 is allowed only for MASH=0
@@ -256,7 +265,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	{
 		PllFixDivider = best_divider;
 		if(cross_boundary) fprintf(stderr,"Warning : cross boundary frequency\n");
-		fprintf(stderr, "Found solution : divider:%d VCO: %4.1fMHz\n", best_divider,Frequency * best_divider * xtal_freq_recip);
+		fprintf(stderr, "Found PLL solution for frequency %4.1fMHz : divider:%d VCO: %4.1fMHz\n", (Frequency/1e6), PllFixDivider,(Frequency/1e6) *((PllFixDivider==1)?2.0:(double)PllFixDivider));
 		return 0;
 	}
 	else
@@ -301,14 +310,8 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		//Choose best PLLDiv and Div
 		ComputeBestLO(Frequency, Bandwidth); //FixeDivider update
 
-		SetFrequency(0);
-		usleep(1000);
-		if ((gpioreg[CM_LOCK] & CM_LOCK_FLOCKC) > 0)
-			fprintf(stderr, "Master PLLC Locked\n");
-		else
-			fprintf(stderr, "Warning ! Master PLLC NOT Locked !!!!\n");
 		
-			
+		
 		if(PllFixDivider==1)
 		{
 			//We will use PDIV by 2, means like we have a 2 times more	
@@ -327,6 +330,9 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		for (int i = 3; i >= 0; i--)
 		{
 			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
+			usleep(100);
+			//fprintf(stderr,"PLLC %d =%x\n",i,ana[i]);
+			ana[i] &= ~(1<<14);
 		}
 
 		if(PllFixDivider==1) 
@@ -336,30 +342,50 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		}
 		else	
 		{
-		    ana[1]&=~(1<<14); // No use prediv means Frequency
+		    ana[1]|=(0<<14); // No use prediv means Frequency
 		}
+		/*
+	 * ANA register setup is done as a series of writes to
+	 * ANA3-ANA0, in that order.  This lets us write all 4
+	 * registers as a single cycle of the serdes interface (taking
+	 * 100 xosc clocks), whereas if we were to update ana0, 1, and
+	 * 3 individually through their partial-write registers, each
+	 * would be their own serdes cycle.
+	 */
 		for (int i = 3; i >= 0; i--)
 		{
-			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
+			ana[i]|=(0x5A << 24) ;
+			gpioreg[(A2W_PLLC_ANA0 ) + i] = ana[i];
+			//fprintf(stderr,"Write %d = %x\n",i,ana[i]);
 			usleep(100);
+			
 		}
-
+		/*
+		for (int i = 3; i >= 0; i--)
+		{
+				fprintf(stderr,"PLLC after %d =%x\n",i,gpioreg[(A2W_PLLC_ANA0 ) + i]);
+		}
+		*/
+		SetFrequency(0);
+		usleep(100);
+		if ((gpioreg[CM_LOCK] & CM_LOCK_FLOCKC) > 0)
+			fprintf(stderr, "Master PLLC Locked\n");
+		else
+			fprintf(stderr, "Warning ! Master PLLC NOT Locked !!!!\n");
 		
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
-		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		//usleep(100);
+		
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
 		usleep(100);
-		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		//usleep(100);
+		
 	}
 	else
 	{
 		GetPllFrequency(pllnumber);											   // Be sure to get the master PLL frequency
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
-		//gpioreg[GPCLK_CNTL_2] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
+		
 	}
 	return 0;
 }
@@ -409,20 +435,23 @@ void clkgpio::SetAdvancedPllMode(bool Advanced)
 
 void clkgpio::SetPLLMasterLoop(int Ki,int Kp,int Ka)
 {
-	uint32_t ana[4];
+		uint32_t ana[4];
 		for (int i = 3; i >= 0; i--)
 		{
 			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
+			
 		}
-
-		ana[1]=(Ki<<A2W_PLL_KI_SHIFT)|(Kp<<A2W_PLL_KP_SHIFT)|(Ka<<A2W_PLL_KA_SHIFT);
+		//Fixe me : Should make a OR with old value
+		ana[1]&=(uint32_t)~((0x7<<A2W_PLL_KI_SHIFT)|(0xF<<A2W_PLL_KP_SHIFT)|(0x7<<A2W_PLL_KA_SHIFT));
+		ana[1]|=(Ki<<A2W_PLL_KI_SHIFT)|(Kp<<A2W_PLL_KP_SHIFT)|(Ka<<A2W_PLL_KA_SHIFT);
 		fprintf(stderr,"Loop parameter =%x\n",ana[1]);
 		for (int i = 3; i >= 0; i--)
 		{
 			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
+			usleep(100);
 		}
 		usleep(100)	;
-	//Only PLLA for now
+	
 	
 }
 
@@ -864,6 +893,6 @@ padgpio::~padgpio()
 
 int padgpio::setlevel(int level)
 {
-	gpioreg[PADS_GPIO_0]=0x5a000000 + (level&0x7) + (0<<4) + (0<<3);
+	gpioreg[PADS_GPIO_0]=(0x5a<<24) | (level&0x7) | (0<<4) | (0<<3);
 	return 0;	
 }

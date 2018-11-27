@@ -87,7 +87,7 @@ class generalgpio:public gpio
 #define GENMASK(h, l)       (((U32_C(1) << ((h) - (l) + 1)) - 1) << (l))
 
 #define CLK_BASE	        (0x00101000)
-#define CLK_LEN			0x1300
+#define CLK_LEN			0x1660
 
 #define CORECLK_CNTL      (0x08/4)
 #define CORECLK_DIV       (0x0c/4)
