@@ -155,7 +155,7 @@ void SimpleTestFileIQ(uint64_t Freq)
 	bool stereo=true;
 	int SR=48000;
 	int FifoSize=512;
-	iqdmasync iqtest(Freq,SR,14,FifoSize);
+	iqdmasync iqtest(Freq,SR,14,FifoSize,MODE_IQ);
 	short IQBuffer[IQBURST*2];
 	std::complex<float> CIQBuffer[IQBURST];	
 	while(running)
@@ -303,36 +303,23 @@ void SimpleTestOOK(uint64_t Freq)
 {
 	
 	int SR=2000;
-	int FifoSize=512;
-	amdmasync amtest(Freq,SR,14,FifoSize);
-	
-	
-	int count=0;
-	int Every=SR/100;
-	float x=0.0;
-	
+	int FifoSize=2000;
+	ookburst ook(Freq,SR,14,FifoSize);
+	unsigned char TabSymbol[FifoSize];
+	for(size_t i=0;i<FifoSize/2;i++)
+	{
+		TabSymbol[i]=i%2;
+	}
+	for(size_t i=0;i<FifoSize/2;i++)
+	{
+		TabSymbol[i+FifoSize/2]=0;
+	}
 	while(running)
 	{
-		//usleep(FifoSize*1000000.0*1.0/(8.0*SR));
-		usleep(1);
-		int Available=amtest.GetBufferAvailable();
-		if(Available>256)
-		{	
-				int Index=amtest.GetUserMemIndex();			
-				for(int i=0;i<Available;i++)
-				{
-						
-						if(count<1000)
-							x=0;
-						else
-							x=1.0;
-						amtest.SetAmSample(Index+i,x);
-						count++;
-						if(count>2000) count=0;
-				}	
-		}
-	}
-	amtest.stop();
+		ook.SetSymbols(TabSymbol,FifoSize);
+		//	sleep(2);
+	}	
+	
 }
 
 void SimpleTestBurstFsk(uint64_t Freq)
@@ -382,7 +369,7 @@ int main(int argc, char* argv[])
 	
 	uint64_t Freq=144200000;
 	if(argc>1)
-		 Freq=atol(argv[1]);
+		 Freq=atof(argv[1]);
 
 	 for (int i = 0; i < 64; i++) {
         struct sigaction sa;
@@ -393,11 +380,11 @@ int main(int argc, char* argv[])
     }
 
 	//SimpleTest(Freq);
-	SimpleTestbpsk(Freq);
+	//SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
 	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
-	//SimpleTestOOK(Freq);
+	SimpleTestOOK(Freq);
 	//SimpleTestBurstFsk(Freq);
 	
 }	
