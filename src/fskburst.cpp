@@ -17,15 +17,15 @@ This program is free software: you can redistribute it and/or modify
 
 #include "stdio.h"
 #include "fskburst.h"
+#include <unistd.h>
 
-
-	fskburst::fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,float Deviation,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+2,2,1),freqdeviation(Deviation)
+	fskburst::fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,float Deviation,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+3,2,1),freqdeviation(Deviation)
 	{
 		
 		clkgpio::SetAdvancedPllMode(true);
 		clkgpio::SetCenterFrequency(TuneFrequency,SymbolRate); // Write Mult Int and Frac : FixMe carrier is already there
 		clkgpio::SetFrequency(0);
-		//clkgpio::enableclk(4); // GPIO 4 CLK by default
+		
 		syncwithpwm=false;
 	
 		if(syncwithpwm)
@@ -57,6 +57,31 @@ This program is free software: you can redistribute it and/or modify
 			sampletab[buffersize*registerbysample-1]=(Originfsel & ~(7 << 12)) | (0 << 12); //Disable Clk
 
 			dma_cb_t *cbp = cbarray;
+			// We must fill the FIFO (PWM or PCM) to be Synchronized from start
+			// PWM FIFO = 16
+			// PCM FIFO = 64
+			if(syncwithpwm)
+			{
+				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
+				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
+				cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
+				cbp->length = 4*(16+1);
+				cbp->stride = 0;
+				cbp->next = mem_virt_to_phys(cbp + 1);
+				cbp++;
+			}
+			else
+			{
+				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
+				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed PCM
+				cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
+				cbp->length = 4*(64+1);
+				cbp->stride = 0;
+				cbp->next = mem_virt_to_phys(cbp + 1);
+				//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+				cbp++;
+			}
+
 			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
 			cbp->src = mem_virt_to_phys(&usermem[buffersize*registerbysample-2]); 
 			cbp->dst = 0x7E000000 + (GPFSEL0<<2)+GENERAL_BASE; 				
@@ -110,21 +135,28 @@ This program is free software: you can redistribute it and/or modify
 }
 	void fskburst::SetSymbols(unsigned char *Symbols,uint32_t Size)
 	{
-		if(Size>buffersize-2) {fprintf(stderr,"Buffer overflow\n");return;}
+		if(Size>buffersize-3) {fprintf(stderr,"Buffer overflow\n");return;}
 		
-		dma_cb_t *cbp=cbarray+1+1;
+		dma_cb_t *cbp=cbarray;
+		cbp+=2; // Skip the first 2 CB (initialisation)
 		for(unsigned int i=0;i<Size;i++)
 		{
 			sampletab[i]=(0x5A<<24)|GetMasterFrac((Symbols[i]==0)?-freqdeviation:freqdeviation);
-			
-			cbp = &cbarray[i*cbbysample+1+1];
+			cbp++;//SKIP FREQ CB
 			cbp->next = mem_virt_to_phys(cbp + 1);
+			cbp++;
 		}
+		cbp--;
 		cbp->next = mem_virt_to_phys(lastcbp);
 
 		
 		dma::start();
-		
-		
+		while(isrunning()) //Block function : return until sent completely signal
+		{
+			usleep(100);
+			
+		}
+		usleep(100);//To be sure last symbol Tx ?
+				
 	}
 

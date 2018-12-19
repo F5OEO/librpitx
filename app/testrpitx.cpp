@@ -302,22 +302,21 @@ void SimpleTestAm(uint64_t Freq)
 void SimpleTestOOK(uint64_t Freq)
 {
 	
-	int SR=2000;
-	int FifoSize=2000;
+	int SR=1000;
+	int FifoSize=21; //24
 	ookburst ook(Freq,SR,14,FifoSize);
-	unsigned char TabSymbol[FifoSize];
-	for(size_t i=0;i<FifoSize/2;i++)
+
+	unsigned char TabSymbol[FifoSize]={0,1,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,1,0,1,0};
+	
+	/*for(size_t i=0;i<FifoSize;i++)
 	{
 		TabSymbol[i]=i%2;
-	}
-	for(size_t i=0;i<FifoSize/2;i++)
-	{
-		TabSymbol[i+FifoSize/2]=0;
-	}
-	while(running)
+	}*/
+	
+	//while(running)
 	{
 		ook.SetSymbols(TabSymbol,FifoSize);
-		//	sleep(2);
+		
 	}	
 	
 }
@@ -326,30 +325,18 @@ void SimpleTestBurstFsk(uint64_t Freq)
 {
 	
 	//int SR=40625;
-	int SR=40625;
-	float Deviation=26370;
-	int FiFoSize=4000;
-	fskburst fsktest(Freq,SR,Deviation,14,FiFoSize);
+	int SR=1000;
+	float Deviation=2000;
+	int FifoSize=21;
+	fskburst fsktest(Freq,SR,Deviation,14,FifoSize);
 	
-	unsigned char TabSymbol[FiFoSize];
-	int BurstSize=100;
+	unsigned char TabSymbol[FifoSize]={0,1,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,1,0,1,0};
 	
-	while(running)
+	
+	//while(running)
 	{
-		int i;
-		int BurstLen=rand()%FiFoSize;
-		for(i=0;i<BurstLen;i++)
-		{
-			TabSymbol[i]=rand()%2;
-		}	
-		fsktest.SetSymbols(TabSymbol,BurstLen);
-		sleep(1);
-		/*for(i=0;i<FiFoSize;i++)
-		{
-			TabSymbol[i]=1;
-		}	
-		fsktest.SetSymbols(TabSymbol,FiFoSize);
-		sleep(1);*/
+		
+		fsktest.SetSymbols(TabSymbol,FifoSize);
 		
 		
 	}
@@ -384,8 +371,8 @@ int main(int argc, char* argv[])
 	//SimpleTestFileIQ(Freq);
 	//SimpleTestDMA(Freq);
 	//SimpleTestAm(Freq);
-	SimpleTestOOK(Freq);
-	//SimpleTestBurstFsk(Freq);
+	//SimpleTestOOK(Freq);
+	SimpleTestBurstFsk(Freq);
 	
 }	
 

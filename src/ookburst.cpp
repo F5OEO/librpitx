@@ -20,12 +20,12 @@ This program is free software: you can redistribute it and/or modify
 #include "ookburst.h"
 
 
-	ookburst::ookburst(uint64_t TuneFrequency,uint32_t SymbolRate,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+1,2,1)
+	ookburst::ookburst(uint64_t TuneFrequency,uint32_t SymbolRate,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+2,2,1)
 	{
 		
 		clkgpio::SetAdvancedPllMode(true);
 		
-		clkgpio::SetCenterFrequency(TuneFrequency,SymbolRate); // Write Mult Int and Frac : FixMe carrier is already there
+		clkgpio::SetCenterFrequency(TuneFrequency,0); // Bandwidth is 0 because frequency always the same
 		clkgpio::SetFrequency(0);
 		
 		syncwithpwm=false;
@@ -56,7 +56,32 @@ This program is free software: you can redistribute it and/or modify
 	void ookburst::SetDmaAlgo()
 {
 			dma_cb_t *cbp=cbarray;
-			for (uint32_t samplecnt = 0; samplecnt < buffersize-1; samplecnt++) 
+			// We must fill the FIFO (PWM or PCM) to be Synchronized from start
+			// PWM FIFO = 16
+			// PCM FIFO = 64
+			if(syncwithpwm)
+			{
+				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
+				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
+				cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
+				cbp->length = 4*(16+1);
+				cbp->stride = 0;
+				cbp->next = mem_virt_to_phys(cbp + 1);
+				cbp++;
+			}
+			else
+			{
+				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
+				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed PCM
+				cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
+				cbp->length = 4*(64+1);
+				cbp->stride = 0;
+				cbp->next = mem_virt_to_phys(cbp + 1);
+				//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+				cbp++;
+			}
+			
+			for (uint32_t samplecnt = 0; samplecnt < buffersize-2; samplecnt++) 
 			{ 
 			
 								
@@ -83,7 +108,7 @@ This program is free software: you can redistribute it and/or modify
 				cbp->length = 4;
 				cbp->stride = 0;
 				cbp->next = mem_virt_to_phys(cbp + 1);
-				//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+				//fprintf(stderr,"cbp : sample %d pointer %p src %x dest %x next %x\n",samplecnt,cbp,cbp->src,cbp->dst,cbp->next);
 				cbp++;
 			
 			}
@@ -102,28 +127,38 @@ This program is free software: you can redistribute it and/or modify
 }
 	void ookburst::SetSymbols(unsigned char *Symbols,uint32_t Size)
 	{
-		if(Size>buffersize-1) {fprintf(stderr,"Buffer overflow\n");return;}
+		if(Size>buffersize-2) {fprintf(stderr,"Buffer overflow\n");return;}
 
 		dma_cb_t *cbp=cbarray;
-		for(unsigned int i=0;i<Size;i++)
+		cbp++; // Skip the first which is the Fiiling of Fifo
+		
+		unsigned i=0;	
+		for(i=0;i<Size;i++)
 		{
 			
 			sampletab[i]=(Symbols[i]==0)?((Originfsel & ~(7 << 12)) | (0 << 12)):((Originfsel & ~(7 << 12)) | (4 << 12));
-			
-			cbp = &cbarray[i*cbbysample];
+		
+			cbp++;//SKIP FSEL CB
 			cbp->next = mem_virt_to_phys(cbp + 1);
 			
+			//fprintf(stderr,"cbp : sample %d pointer %p src %x dest %x next %x\n",i,cbp,cbp->src,cbp->dst,cbp->next);
+			cbp++;	
+			
 		}
-		cbp->next = mem_virt_to_phys(lastcbp);
-
 		
+		cbp--;
+		cbp->next = mem_virt_to_phys(lastcbp);
+		
+				
 		dma::start();
+		
 		
 		while(isrunning()) //Block function : return until sent completely signal
 		{
 			usleep(100);
 			
 		}
+		usleep(100);//To be sure last symbol Tx ?
 			
 	}
 
