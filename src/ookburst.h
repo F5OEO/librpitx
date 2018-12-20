@@ -20,4 +20,21 @@ class ookburst:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	void SetSymbols(unsigned char *Symbols,uint32_t Size);
 }; 
 
+class ookbursttiming:public ookburst
+{
+	protected:
+	unsigned char *ookrenderbuffer=nullptr;
+	size_t m_MaxMessage=0;
+	public:
+	typedef struct SampleOOKTiming 
+	{
+	  unsigned char value;
+	  size_t duration;
+	} SampleOOKTiming;
+
+	ookbursttiming(uint64_t TuneFrequency,size_t MaxMessageDuration);
+	~ookbursttiming();
+	void SendMessage(SampleOOKTiming *TabSymbols,size_t Size);
+};
+
 #endif

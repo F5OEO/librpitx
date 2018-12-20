@@ -132,8 +132,8 @@ This program is free software: you can redistribute it and/or modify
 		dma_cb_t *cbp=cbarray;
 		cbp++; // Skip the first which is the Fiiling of Fifo
 		
-		unsigned i=0;	
-		for(i=0;i<Size;i++)
+		
+		for(unsigned i=0;i<Size;i++)
 		{
 			
 			sampletab[i]=(Symbols[i]==0)?((Originfsel & ~(7 << 12)) | (0 << 12)):((Originfsel & ~(7 << 12)) | (4 << 12));
@@ -162,3 +162,34 @@ This program is free software: you can redistribute it and/or modify
 			
 	}
 
+	//****************************** OOK BURST TIMING *****************************************
+	// SampleRate is set to 0.1MHZ,means 10us granularity, MaxMessageDuration in us
+	ookbursttiming::ookbursttiming(uint64_t TuneFrequency,size_t MaxMessageDuration):ookburst(TuneFrequency,1e5,14,MaxMessageDuration/10)
+	{
+		m_MaxMessage=MaxMessageDuration;
+		ookrenderbuffer=new unsigned char[m_MaxMessage];
+	}
+
+	ookbursttiming::~ookbursttiming()
+	{
+		if(ookrenderbuffer!=nullptr)
+			delete []ookrenderbuffer;
+	}
+
+	void ookbursttiming::SendMessage(SampleOOKTiming *TabSymbols,size_t Size)
+	{
+		size_t n=0;
+		for (size_t i=0;i<Size;i++)
+		{
+			for(size_t j=0;j<TabSymbols[i].duration/10;j++)
+			{
+				ookrenderbuffer[n++]=TabSymbols[i].value;
+				if(n>=m_MaxMessage) 
+				{
+					fprintf(stderr,"OOK Message too long abort time(%d/%d)\n",n,m_MaxMessage);
+					return;
+				}
+			}	
+		}
+		SetSymbols(ookrenderbuffer,n);
+	}
