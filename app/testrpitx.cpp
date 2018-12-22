@@ -295,18 +295,18 @@ void SimpleTestOOK(uint64_t Freq)
 void SimpleTestOOKTiming(uint64_t Freq)
 {
 
-	// 30ms max message
+	// 300ms max message
 	ookbursttiming ooksender(Freq, 300000);
 	ookbursttiming::SampleOOKTiming Message[100];
 
-	for (size_t i = 0; i < 100; i += 2)
+	for (size_t i = 0; i < 10; i += 2)
 	{
 		Message[i].value = 1;
-		Message[i].duration = 50;
+		Message[i].duration = 5000;
 		Message[i + 1].value = 0;
-		Message[i + 1].duration = 2000;
+		Message[i + 1].duration = 15000;
 	}
-	ooksender.SendMessage(Message, 100);
+	ooksender.SendMessage(Message, 10);
 }
 
 uint8_t SetCRC8(uint8_t *addr)
@@ -361,15 +361,15 @@ void AlectoOOK(uint64_t Freq)
 
 	ookbursttiming::SampleOOKTiming pulse;
 	pulse.value = 1;
-	pulse.duration = 450;//468
+	pulse.duration = 450; //468
 
 	ookbursttiming::SampleOOKTiming Sync;
 	Sync.value = 0;
-	Sync.duration = 9000;//8956
+	Sync.duration = 9000; //8956
 
 	ookbursttiming::SampleOOKTiming Zero;
 	Zero.value = 0;
-	Zero.duration = 2000;//2016
+	Zero.duration = 2000; //2016
 
 	ookbursttiming::SampleOOKTiming One;
 	One.value = 0;
@@ -396,78 +396,74 @@ void AlectoOOK(uint64_t Freq)
 	//AlectoProtocol[28] = 1;  //Wind
 	//AlectoProtocol1[28] = 1; //Wind
 
-	
-
 	//CheckSum n8 = ( 0xf - n0 - n1 - n2 - n3 - n4 - n5 - n6 - n7 ) & 0xf
-	
 
 	for (size_t h = 0; h < 6; h++)
 	{
 
-
-	int direction = h*45;
-	for (size_t i = 0; i < 8; i++)
-	{
-		AlectoProtocol1[15 + i] = (direction >> (i)) & 0x1;
-	}
-	int Speed = h*10;
-	Speed=Speed/0.2;
-	for (size_t i = 0; i < 8; i++)
-	{
-		AlectoProtocol[24 + i] = (direction >> (i)) & 0x1;
-		AlectoProtocol1[24 + i] = (direction >> (i)) & 0x1;
-	}
-	SetCRC8(AlectoProtocol1);
-	SetCRC8(AlectoProtocol);
-	n=0;
-	for (size_t i = 0; i < 8; i++)
-	{
-		Message[n++] = pulse;
-		Message[n++] = One;
-	}
-
-	Message[n++] = pulse;
-	Message[n++] = Sync;
-	for (size_t k = 0; k < 6; k++)
-	{
-		for (size_t i = 0; i < 36; i++)
+		int direction = h * 45;
+		for (size_t i = 0; i < 9; i++)
+		{
+			AlectoProtocol1[15 + i] = (direction >> (i)) & 0x1;
+		}
+		int Speed = h * 10;
+		Speed = Speed / 0.2;
+		for (size_t i = 0; i < 8; i++)
+		{
+			AlectoProtocol[24 + i] = (direction >> (i)) & 0x1;
+			AlectoProtocol1[24 + i] = (direction >> (i)) & 0x1;
+		}
+		SetCRC8(AlectoProtocol1);
+		SetCRC8(AlectoProtocol);
+		n = 0;
+		for (size_t i = 0; i < 8; i++)
 		{
 			Message[n++] = pulse;
-			if (k % 2 == 0)
-			{
-				if (AlectoProtocol[i] == 0)
-					Message[n++] = Zero;
-				else
-					Message[n++] = One;
-			}
-			else
-			{
-				if (AlectoProtocol1[i] == 0)
-					Message[n++] = Zero;
-				else
-					Message[n++] = One;
-			}
-			//Message[n++]=(AlectoProtocol[i]==0)?Zero:One;
+			Message[n++] = One;
 		}
 
-		if (k < 5) // Not last one
+		Message[n++] = pulse;
+		Message[n++] = Sync;
+		for (size_t k = 0; k < 6; k++)
 		{
-			for (size_t i = 0; i < 4; i++)
+			for (size_t i = 0; i < 36; i++)
 			{
 				Message[n++] = pulse;
-				Message[n++] = Sync;
+				if (k % 2 == 0)
+				{
+					if (AlectoProtocol[i] == 0)
+						Message[n++] = Zero;
+					else
+						Message[n++] = One;
+				}
+				else
+				{
+					if (AlectoProtocol1[i] == 0)
+						Message[n++] = Zero;
+					else
+						Message[n++] = One;
+				}
+				//Message[n++]=(AlectoProtocol[i]==0)?Zero:One;
+			}
+
+			if (k < 5) // Not last one
+			{
+				for (size_t i = 0; i < 4; i++)
+				{
+					Message[n++] = pulse;
+					Message[n++] = Sync;
+				}
 			}
 		}
-	}
-	Message[n++] = pulse;
-	Message[n++] = Sync;
-	Message[n++] = pulse;
+		Message[n++] = pulse;
+		Message[n++] = Sync;
+		Message[n++] = pulse;
 
-	fprintf(stderr, "N=%d\n", n);
-	ooksender.SendMessage(Message, n);
-	sleep(10);
-	
-		int Temperature = h * 100+200;
+		fprintf(stderr, "N=%d\n", n);
+		ooksender.SendMessage(Message, n);
+		sleep(2);
+
+		int Temperature = h * 100 + 200;
 		for (size_t i = 0; i < 12; i++)
 		{
 			AlectoProtocolT[12 + i] = (Temperature >> (i)) & 0x1;
@@ -511,9 +507,117 @@ void AlectoOOK(uint64_t Freq)
 
 		ooksender.SendMessage(Message, n);
 		//sleep(5);
-		sleep(20);
+		sleep(2);
 	}
 }
+
+
+void RfSwitchOOK(uint64_t Freq)
+{
+	/*
+	* From http://elektronikforumet.com/wiki/index.php/RF_Protokoll_-_Proove_self_learning
+ * Proove packet structure (32 bits):
+ * HHHH HHHH HHHH HHHH HHHH HHHH HHGO CCEE
+ * H = The first 26 bits are transmitter unique codes, and it is this code that the receiver “learns” to recognize.
+ * G = Group code. Set to 0 for on, 1 for off.
+ * O = On/Off bit. Set to 0 for on, 1 for off.
+ * C = Channel bits.
+ * E = Unit bits. Device to be turned on or off. Unit #1 = 00, #2 = 01, #3 = 10.
+ * Physical layer.
+ * Every bit in the packets structure is sent as two physical bits.
+ * Where the second bit is the inverse of the first, i.e. 0 -> 01 and 1 -> 10.
+ * Example: 10101110 is sent as 1001100110101001
+ * The sent packet length is thus 64 bits.
+ * A message is made up by a Sync bit followed by the Packet bits and ended by a Pause bit.
+ * Every message is repeated four times.
+ * */
+	ookbursttiming ooksender(Freq, 1200000);
+	ookbursttiming::SampleOOKTiming Message[50 * 6 * 2]; 
+
+	ookbursttiming::SampleOOKTiming pulse;
+	pulse.value = 1;
+	pulse.duration = 200; //468
+
+	ookbursttiming::SampleOOKTiming Sync;
+	Sync.value = 0;
+	Sync.duration = 10700; //8956
+
+	ookbursttiming::SampleOOKTiming Zero;
+	Zero.value = 0;
+	Zero.duration = 1300; //2016
+
+	ookbursttiming::SampleOOKTiming One;
+	One.value = 0;
+	One.duration = 300;
+
+	ookbursttiming::SampleOOKTiming preamble;
+	preamble.value = 0;
+	preamble.duration = 2600;
+
+	unsigned int ID=32288767;
+
+	ID=ID<<6;
+	
+	unsigned char MessageTx[4];
+	
+	int group=1;	
+	int Channel=3;	
+	int unit=2;
+	int power=1;
+
+	ookbursttiming::SampleOOKTiming MessageOOK[200];
+	
+	for (int times = 0; times < 20; times++)
+	{
+		power=times%2;
+		for(int i=0;i<4;i++) MessageTx[i]=ID>>(8*(3-i));
+		MessageTx[3]|=(group&0x1)<<5;
+		MessageTx[3]|=(~power&0x1)<<4;
+		MessageTx[3]|=(Channel&0x3)<<2;
+		MessageTx[3]|=(unit&0x3);
+		
+		for (int i = 0; i < 2; i++)
+		{
+			int n = 0;
+			MessageOOK[n++] = pulse;
+			MessageOOK[n++] = preamble;
+			for (int j = 0; j < 4; j++)
+			{
+				
+				for (int k = 0; k < 8; k++)
+				{
+					if (((MessageTx[j] >> (7 - k)) & 1) == 0)
+					{
+						MessageOOK[n++] = pulse;
+						MessageOOK[n++] = Zero;
+						MessageOOK[n++] = pulse;
+						MessageOOK[n++] = One;
+						
+					}
+					else
+					{
+						MessageOOK[n++] = pulse;
+						MessageOOK[n++] = One;
+						MessageOOK[n++] = pulse;
+						MessageOOK[n++] = Zero;
+						
+					}
+					
+				}
+				
+			}
+				
+			MessageOOK[n++] = pulse;
+			MessageOOK[n++] = Sync;
+
+			ooksender.SendMessage(MessageOOK, n);
+		}
+		usleep(100000);
+	}
+
+}
+
+
 
 void SimpleTestBurstFsk(uint64_t Freq)
 {
@@ -564,5 +668,6 @@ int main(int argc, char *argv[])
 	//SimpleTestOOK(Freq);
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
-	AlectoOOK(Freq);
+	//AlectoOOK(Freq);
+	RfSwitchOOK(Freq);
 }
