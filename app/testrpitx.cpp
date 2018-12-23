@@ -637,6 +637,26 @@ void SimpleTestBurstFsk(uint64_t Freq)
 	}
 	fsktest.stop();
 }
+
+void SimpleTestAtv(uint64_t Freq)
+{
+
+	int SR = 1000000;
+	int FifoSize = 625*52;
+	float samples[FifoSize];
+	for(int j=0;j<625;j++)
+	{
+		for(int i=0;i<52;i++) samples[i+j*52]=i/52.0;
+	}	
+	atv atvtest(Freq, SR, 14, 625);
+	atvtest.SetTvSamples(samples,FifoSize);
+	while(running)
+	{
+		usleep(100000);
+		
+	}
+}
+
 static void
 terminate(int num)
 {
@@ -669,5 +689,6 @@ int main(int argc, char *argv[])
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
 	//AlectoOOK(Freq);
-	RfSwitchOOK(Freq);
+	//RfSwitchOOK(Freq);
+	SimpleTestAtv(Freq);
 }
