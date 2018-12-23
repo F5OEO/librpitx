@@ -35,7 +35,7 @@ atv::atv(uint64_t TuneFrequency, uint32_t SR, int Channel, uint32_t Lines) : buf
     clkgpio::SetCenterFrequency(TuneFrequency, SampleRate);
     clkgpio::SetFrequency(0);
     clkgpio::enableclk(4); // GPIO 4 CLK by default
-    syncwithpwm = true;
+    syncwithpwm = false;
 
     if (syncwithpwm)
     {
@@ -69,16 +69,27 @@ void atv::SetDmaAlgo()
     dma_cb_t *cbp = cbarray;
     int LineResolution = 625;
 
+    uint32_t level0= mem_virt_to_phys(&usermem[(buffersize * registerbysample - 1)]);
+    uint32_t level1= mem_virt_to_phys(&usermem[(buffersize * registerbysample - 2)]);
+    int shortsync_0=2;
+    int shortsync_1=30;
+
+    int longsync_0=30;
+    int longsync_1=2;
+
+    int normalsync_0=4;
+    int normalsync_1=8;
+
     for (int frame = 0; frame < 2; frame++)
     {
-        //32us*5 or 6
-        for (int i = 0; i < 5+frame; i++)
+       //Preegalisation
+        for (int i = 0; i < 6/*-frame*/; i++)
         {
             //2us 0,30us 1
             //@0
             //SYNC preegalisation 2us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 1)]); //Amp 0
+            cbp->src = level0; //Amp 0
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -95,14 +106,14 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 2; //2us
+            cbp->length = 4 * shortsync_0; //2us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
 
             //SYNC preegalisation 30us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 2)]); //Amp 1
+            cbp->src = level1; //Amp 1
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -119,7 +130,7 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 30; //30us
+            cbp->length = 4 * shortsync_1; //30us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
@@ -128,7 +139,7 @@ void atv::SetDmaAlgo()
         for (int i = 0; i < 5; i++)
         {
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 1)]); //Amp 0 27us
+            cbp->src = level0; //Amp 0 27us
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -145,13 +156,13 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 27; //27us
+            cbp->length = 4 * longsync_0; //27us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
 
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 2)]); //Amp 1 5us
+            cbp->src = level1; //Amp 1 5us
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -168,19 +179,19 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 5; //5us
+            cbp->length = 4 * longsync_1; //5us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
         }
         //postegalisation ; copy paste from preegalisation
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 5/*-i*/; i++)
         {
             //2us 0,30us 1
             //@0
             //SYNC preegalisation 2us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 1)]); //Amp 0
+            cbp->src = level0; //Amp 0
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -197,14 +208,14 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 2; //2us
+            cbp->length = 4 * shortsync_0; //2us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
 
             //SYNC preegalisation 30us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 2)]); //Amp 1
+            cbp->src = level1; //Amp 1
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -221,19 +232,19 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 30; //30us
+            cbp->length = 4 * shortsync_1; //30us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
         }
 
-        for (int line = 0; line < 305; line++)
+        for (int line = 0; line < /*305*/304+frame; line++)
         {
             
             //@0
             //SYNC 0/ 5us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 1)]); //Amp 0
+            cbp->src = level0; //Amp 0
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -250,7 +261,7 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 4; //5us
+            cbp->length = 4 * normalsync_0; //4us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
@@ -258,7 +269,7 @@ void atv::SetDmaAlgo()
             //@0
             //SYNC 1/ 5us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-            cbp->src = mem_virt_to_phys(&usermem[(buffersize * registerbysample - 2)]); //Amp 1
+            cbp->src = level1; //Amp 1
             cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
             cbp->length = 4;
             cbp->stride = 0;
@@ -275,7 +286,7 @@ void atv::SetDmaAlgo()
                 cbp->dst = 0x7E000000 + (PWM_FIFO << 2) + PWM_BASE;
             else
                 cbp->dst = 0x7E000000 + (PCM_FIFO_A << 2) + PCM_BASE;
-            cbp->length = 4 * 6; //5us;
+            cbp->length = 4 * normalsync_1; //5us;
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
@@ -286,7 +297,11 @@ void atv::SetDmaAlgo()
                                                                                                           //@0
                 //DATA IN / 1us
                 cbp->info = 0;                                                       //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-                cbp->src = mem_virt_to_phys(&usermem[samplecnt * registerbysample]); //Amp 1
+                if(line<10) //remove 10 lines 
+                     cbp->src=level1;
+                else     
+                    cbp->src = mem_virt_to_phys(&usermem[samplecnt * registerbysample+frame*312*registerbysample]); //Amp 1
+
                 cbp->dst = 0x7E000000 + (PADS_GPIO_0 << 2) + PADS_GPIO;
                 cbp->length = 4;
                 cbp->stride = 0;
@@ -308,6 +323,7 @@ void atv::SetDmaAlgo()
                 cbp->next = mem_virt_to_phys(cbp + 1);
                 cbp++;
             }
+            /*
             //FRONT PORSH
             //SYNC 2us
             cbp->info = 0;                                                              //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
@@ -331,7 +347,7 @@ void atv::SetDmaAlgo()
             cbp->length = 4 * 2; //2us
             cbp->stride = 0;
             cbp->next = mem_virt_to_phys(cbp + 1);
-            cbp++;
+            cbp++;*/
         }
     }
     cbp--;

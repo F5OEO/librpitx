@@ -644,15 +644,45 @@ void SimpleTestAtv(uint64_t Freq)
 	int SR = 1000000;
 	int FifoSize = 625*52;
 	float samples[FifoSize];
-	for(int j=0;j<625;j++)
+	//Frame 0
+	for(int j=0;j<312;j++)
 	{
-		for(int i=0;i<52;i++) samples[i+j*52]=i/52.0;
+		if(j<160)
+		{
+			for(int i=0;i<52;i++) samples[i+j*52]=i/52.0;
+			
+		}
+		else
+		{
+			for(int i=0;i<52;i++) samples[i+j*52]=0;
+			
+		}	
+		
 	}	
+	//Frame 1
+	for(int j=0;j<312;j++)
+	{
+		if(j<160)
+		{
+			for(int i=0;i<52;i++) samples[i+(j+312)*52]=i/52.0;
+			
+		}
+		else
+		{
+			for(int i=0;i<52;i++) samples[i+(j+312)*52]=0;
+			
+		}	
+		
+	}
 	atv atvtest(Freq, SR, 14, 625);
+	int Available = atvtest.GetBufferAvailable();
+    int Index = atvtest.GetUserMemIndex();
+	fprintf(stderr,"Available %d Index %d\n",Available,Index);
 	atvtest.SetTvSamples(samples,FifoSize);
 	while(running)
 	{
-		usleep(100000);
+		//atvtest.SetTvSamples(samples,FifoSize);
+		usleep(40000);
 		
 	}
 }
