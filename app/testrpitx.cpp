@@ -511,7 +511,6 @@ void AlectoOOK(uint64_t Freq)
 	}
 }
 
-
 void RfSwitchOOK(uint64_t Freq)
 {
 	/*
@@ -532,7 +531,7 @@ void RfSwitchOOK(uint64_t Freq)
  * Every message is repeated four times.
  * */
 	ookbursttiming ooksender(Freq, 1200000);
-	ookbursttiming::SampleOOKTiming Message[50 * 6 * 2]; 
+	ookbursttiming::SampleOOKTiming Message[50 * 6 * 2];
 
 	ookbursttiming::SampleOOKTiming pulse;
 	pulse.value = 1;
@@ -554,28 +553,29 @@ void RfSwitchOOK(uint64_t Freq)
 	preamble.value = 0;
 	preamble.duration = 2600;
 
-	unsigned int ID=32288767;
+	unsigned int ID = 32288767;
 
-	ID=ID<<6;
-	
+	ID = ID << 6;
+
 	unsigned char MessageTx[4];
-	
-	int group=1;	
-	int Channel=3;	
-	int unit=2;
-	int power=1;
+
+	int group = 1;
+	int Channel = 3;
+	int unit = 2;
+	int power = 1;
 
 	ookbursttiming::SampleOOKTiming MessageOOK[200];
-	
+
 	for (int times = 0; times < 20; times++)
 	{
-		power=times%2;
-		for(int i=0;i<4;i++) MessageTx[i]=ID>>(8*(3-i));
-		MessageTx[3]|=(group&0x1)<<5;
-		MessageTx[3]|=(~power&0x1)<<4;
-		MessageTx[3]|=(Channel&0x3)<<2;
-		MessageTx[3]|=(unit&0x3);
-		
+		power = times % 2;
+		for (int i = 0; i < 4; i++)
+			MessageTx[i] = ID >> (8 * (3 - i));
+		MessageTx[3] |= (group & 0x1) << 5;
+		MessageTx[3] |= (~power & 0x1) << 4;
+		MessageTx[3] |= (Channel & 0x3) << 2;
+		MessageTx[3] |= (unit & 0x3);
+
 		for (int i = 0; i < 2; i++)
 		{
 			int n = 0;
@@ -583,7 +583,7 @@ void RfSwitchOOK(uint64_t Freq)
 			MessageOOK[n++] = preamble;
 			for (int j = 0; j < 4; j++)
 			{
-				
+
 				for (int k = 0; k < 8; k++)
 				{
 					if (((MessageTx[j] >> (7 - k)) & 1) == 0)
@@ -592,7 +592,6 @@ void RfSwitchOOK(uint64_t Freq)
 						MessageOOK[n++] = Zero;
 						MessageOOK[n++] = pulse;
 						MessageOOK[n++] = One;
-						
 					}
 					else
 					{
@@ -600,13 +599,10 @@ void RfSwitchOOK(uint64_t Freq)
 						MessageOOK[n++] = One;
 						MessageOOK[n++] = pulse;
 						MessageOOK[n++] = Zero;
-						
 					}
-					
 				}
-				
 			}
-				
+
 			MessageOOK[n++] = pulse;
 			MessageOOK[n++] = Sync;
 
@@ -614,10 +610,7 @@ void RfSwitchOOK(uint64_t Freq)
 		}
 		usleep(100000);
 	}
-
 }
-
-
 
 void SimpleTestBurstFsk(uint64_t Freq)
 {
@@ -642,48 +635,39 @@ void SimpleTestAtv(uint64_t Freq)
 {
 
 	int SR = 1000000;
-	int FifoSize = 625*52;
-	float samples[FifoSize];
-	//Frame 0
-	for(int j=0;j<312;j++)
-	{
-		if(j<160)
-		{
-			for(int i=0;i<52;i++) samples[i+j*52]=i/52.0;
-			
-		}
-		else
-		{
-			for(int i=0;i<52;i++) samples[i+j*52]=0;
-			
-		}	
-		
-	}	
-	//Frame 1
-	for(int j=0;j<312;j++)
-	{
-		if(j<160)
-		{
-			for(int i=0;i<52;i++) samples[i+(j+312)*52]=i/52.0;
-			
-		}
-		else
-		{
-			for(int i=0;i<52;i++) samples[i+(j+312)*52]=0;
-			
-		}	
-		
-	}
+	int FifoSize = 625 * 52;
+	unsigned char samples[FifoSize];
+	
+
 	atv atvtest(Freq, SR, 14, 625);
-	int Available = atvtest.GetBufferAvailable();
-    int Index = atvtest.GetUserMemIndex();
-	fprintf(stderr,"Available %d Index %d\n",Available,Index);
-	atvtest.SetTvSamples(samples,FifoSize);
-	while(running)
+	//Frame 0
+		for (int j = 0; j < 312; j++)
+		{
+			if (j < 160)
+			{
+				
+				for (int i = 0; i < 52; i++)
+				{
+					
+					samples[i + j * 52] = 255*(1-i/52.0);//Frame 0
+					samples[i + j*52+312*52] =255*(1-i/52.0); //Frame 1
+				}
+			}
+			else 
+			{
+				for (int i = 0; i < 52; i++)
+				{
+					samples[i + j * 52] = 255*(1-i/52.0);
+					samples[i + j*52+312*52] =255*(1-i/52.0);
+				}	
+			}
+		}
+		//atvtest.SetFrame(samples,625);
+		atvtest.start();
+	while (running)
 	{
-		//atvtest.SetTvSamples(samples,FifoSize);
-		usleep(40000);
-		
+		//atvtest.SetTvSamples(samples,FifoSize/4);
+		usleep(400000);
 	}
 }
 
