@@ -90,7 +90,7 @@ void atv::SetDmaAlgo()
 
     for (int frame = 0; frame < 2; frame++)
     {
-        //Preegalisation //6*4CB
+        //Preegalisation //6*4*2FrameCB
         for (int i = 0; i < 6 /*-frame*/; i++)
         {
             //2us 0,30us 1
@@ -143,7 +143,7 @@ void atv::SetDmaAlgo()
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
         }
-        //SYNC top trame 5*4CB
+        //SYNC top trame 5*4*2frameCB
         for (int i = 0; i < 5; i++)
         {
             cbp->info = 0;     //BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
@@ -193,7 +193,7 @@ void atv::SetDmaAlgo()
             cbp++;
         }
         //postegalisation ; copy paste from preegalisation
-        //5*4CB
+        //5*4*2CB
         for (int i = 0; i < 5 /*-i*/; i++)
         {
             //2us 0,30us 1
@@ -246,7 +246,7 @@ void atv::SetDmaAlgo()
             cbp->next = mem_virt_to_phys(cbp + 1);
             cbp++;
         }
-        //(304+305)*(4+52*2)CB
+        //(304+305)*(4+52*2+2)CB
         for (int line = 0; line < /*305*/ 304 + frame; line++)
         {
 
@@ -368,15 +368,24 @@ void atv::SetFrame(unsigned char *Luminance, size_t Lines)
 {
     for (size_t i = 0; i < Lines; i++)
     {
-
         for (size_t x = 0; x < 52; x++)
         {
-            int AmplitudePAD = Luminance[i * 52 + x] * 6 + 1; //1 to 7
+            int AmplitudePAD = (Luminance[i * 52 + x]/255.0) * 6 + 1; //1 to 7
+            if (i % 2 == 0)                                                                                      // First field
+                usermem[i * 52 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
+            else
+                usermem[i * 52 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
+
+         }   
+        /*for (size_t x = 0; x < 52; x++)
+        {
+            int AmplitudePAD = (Luminance[i * 52 + x]/255.0) * 6 + 1; //1 to 7
 
             if (i % 2 == 0)                                                                                      // First field
                 usermem[i * 52 / 2 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
             else                                                                                                 //second field
                 usermem[i * 52 / 2 + Lines / 2 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3); // Amplitude PAD
         }
+        */
     }
 }

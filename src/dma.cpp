@@ -31,7 +31,7 @@ extern "C"
 
 dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to check to be 256 Aligned for UserMem
 { 
-	fprintf(stderr,"Channel %d CBSize %d UsermemSize %d\n",Channel,CBSize,UserMemSize);
+	fprintf(stderr,"Channel %d CBSize %u UsermemSize %u\n",Channel,CBSize,UserMemSize);
 	
 	channel=Channel;
     mbox.handle = mbox_open();
@@ -172,8 +172,6 @@ bufferdma::bufferdma(int Channel,uint32_t tbuffersize,uint32_t tcbbysample,uint3
 	registerbysample=tregisterbysample;
 	fprintf(stderr,"BufferSize %d , cb %d user %d\n",buffersize,buffersize*cbbysample,buffersize*registerbysample);
 	
-	
-
 	current_sample=0;
 	last_sample=0;
 	sample_available=buffersize;

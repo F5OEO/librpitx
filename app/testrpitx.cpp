@@ -640,34 +640,29 @@ void SimpleTestAtv(uint64_t Freq)
 	
 
 	atv atvtest(Freq, SR, 14, 625);
-	//Frame 0
-		for (int j = 0; j < 312; j++)
-		{
-			if (j < 160)
-			{
-				
-				for (int i = 0; i < 52; i++)
-				{
-					
-					samples[i + j * 52] = 255*(1-i/52.0);//Frame 0
-					samples[i + j*52+312*52] =255*(1-i/52.0); //Frame 1
-				}
-			}
-			else 
-			{
-				for (int i = 0; i < 52; i++)
-				{
-					samples[i + j * 52] = 255*(1-i/52.0);
-					samples[i + j*52+312*52] =255*(1-i/52.0);
-				}	
-			}
-		}
-		//atvtest.SetFrame(samples,625);
-		atvtest.start();
-	while (running)
+	atvtest.start();
+	for(int frame=0;running;frame++)
 	{
+		for(int i=0;i<625;i++)
+		{
+			for (int j = 0; j < 52; j++)
+			{
+				if(i%2==0)
+					samples[i/2*52+j]=((i+j*frame)%255);
+				else
+					samples[i/2*52+j+52*312]=((i+j*frame)%255);
+				/*if(i%16<8)
+					samples[i*52+j]=(j%8<4)?0:255;
+				else
+					samples[i*52+j]=(j%8<4)?255:0;*/
+			}
+		}	
+		
+		
+	
 		//atvtest.SetTvSamples(samples,FifoSize/4);
-		usleep(400000);
+		atvtest.SetFrame(samples,625);
+		usleep(40000);
 	}
 }
 
