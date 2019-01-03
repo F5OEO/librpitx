@@ -634,6 +634,7 @@ void SimpleTestBurstFsk(uint64_t Freq)
 void SimpleTestAtv(uint64_t Freq)
 {
 
+	//int SR = 1000000;
 	int SR = 1000000;
 	int FifoSize = 625 * 52;
 	unsigned char samples[FifoSize];
@@ -641,27 +642,61 @@ void SimpleTestAtv(uint64_t Freq)
 
 	atv atvtest(Freq, SR, 14, 625);
 	atvtest.start();
+	enum {patern_grey,patern_square,patern_move,patern_point};
+	int Mode=patern_move;
+	bool random_patern=true;
 	for(int frame=0;running;frame++)
 	{
+		int x,y;
+		y=rand()%625;
+		x=rand()%52;
+		if((frame%50==0)&&(random_patern))
+			Mode=rand()%(patern_point+1);
 		for(int i=0;i<625;i++)
 		{
 			for (int j = 0; j < 52; j++)
 			{
-				if(i%2==0)
-					samples[i/2*52+j]=((i+j*frame)%255);
-				else
-					samples[i/2*52+j+52*312]=((i+j*frame)%255);
-				/*if(i%16<8)
-					samples[i*52+j]=(j%8<4)?0:255;
-				else
-					samples[i*52+j]=(j%8<4)?255:0;*/
+				switch(Mode)
+				{
+					case patern_grey:
+					{
+						samples[i*52+j]=255*(j/52.0);
+					}
+					break;
+					case patern_square:
+					{
+						if(i%64<(frame%64))
+							samples[i*52+j]=(j%16<8)?255*(j/52.0):255*(1-(j/52.0));
+						else
+							samples[i*52+j]=(j%16<8)?255:0;
+					}
+					break;
+					case patern_move:
+					{
+						samples[i*52+j]=((i+j*frame)%255);
+					}
+					break;
+					case patern_point:
+					{
+						if((i==y)&&(j==x))
+							samples[i*52+j]=255;
+						else
+							samples[i*52+j]=0;
+					}
+					break;
+
+				}
+				
+				
+					
 			}
 		}	
 		
 		
 	
 		//atvtest.SetTvSamples(samples,FifoSize/4);
-		atvtest.SetFrame(samples,625);
+		
+			atvtest.SetFrame(samples,625);
 		usleep(40000);
 	}
 }

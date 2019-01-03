@@ -25,7 +25,7 @@ This program is free software: you can redistribute it and/or modify
 #include <stdlib.h>
 
 //#define CB_ATV (6 * 4 + 5 * 4 + 5 * 4 + (304 + 305) * (4 + 52 * 2))
-#define CB_ATV 68000
+#define CB_ATV 70000
 
 atv::atv(uint64_t TuneFrequency, uint32_t SR, int Channel, uint32_t Lines) : dma(Channel, CB_ATV, Lines * 52 + 3)
 // Need 2 more bytes for 0 and 1
@@ -38,7 +38,7 @@ atv::atv(uint64_t TuneFrequency, uint32_t SR, int Channel, uint32_t Lines) : dma
     clkgpio::SetCenterFrequency(TuneFrequency, SampleRate);
     clkgpio::SetFrequency(0);
     clkgpio::enableclk(4); // GPIO 4 CLK by default
-    syncwithpwm = false;
+    syncwithpwm = true;
 
     if (syncwithpwm)
     {
@@ -91,7 +91,7 @@ void atv::SetDmaAlgo()
     for (int frame = 0; frame < 2; frame++)
     {
         //Preegalisation //6*4*2FrameCB
-        for (int i = 0; i < 6 /*-frame*/; i++)
+        for (int i = 0; i < 5 + frame; i++)
         {
             //2us 0,30us 1
             //@0
@@ -247,7 +247,7 @@ void atv::SetDmaAlgo()
             cbp++;
         }
         //(304+305)*(4+52*2+2)CB
-        for (int line = 0; line < /*305*/ 304 + frame; line++)
+        for (int line = 0; line < 305/* 317 + frame*/; line++)
         {
 
             //@0
@@ -370,12 +370,13 @@ void atv::SetFrame(unsigned char *Luminance, size_t Lines)
     {
         for (size_t x = 0; x < 52; x++)
         {
-            int AmplitudePAD = (Luminance[i * 52 + x]/255.0) * 6 + 1; //1 to 7
+            int AmplitudePAD = (Luminance[i * 52 + x]/255.0) * 6.0 + 1; //1 to 7
+             // usermem[i* 52 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
             if (i % 2 == 0)                                                                                      // First field
-                usermem[i * 52 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
+                usermem[i* 52 /2 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
             else
-                usermem[i * 52 + x] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
-
+                usermem[(i-1)* 52/2 + x+52*312] = (0x5A << 24) + (AmplitudePAD & 0x7) + (1 << 4) + (0 << 3);             // Amplitude PAD
+            
          }   
         /*for (size_t x = 0; x < 52; x++)
         {
