@@ -207,7 +207,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	// Constants taken https://github.com/raspberrypi/linux/blob/ffd7bf4085b09447e5db96edd74e524f118ca3fe/drivers/clk/bcm/clk-bcm2835.c#L1763
 	//MIN RATE is NORMALLY 600MHZ
 	#define MIN_PLL_RATE 200e6
-	#define MIN_PLL_RATE_USE_PDIV 1700e6
+	#define MIN_PLL_RATE_USE_PDIV 1500e6 //1700 works but some ticky breaks in clock..PLL should be at limit
 	#define MAX_PLL_RATE 4e9
 	#define XTAL_RATE 19.2e6
 	double xtal_freq_recip = 1.0 / XTAL_RATE; // todo PPM correction

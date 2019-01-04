@@ -126,6 +126,7 @@ int dma::start()
 	dma_reg.gpioreg[DMA_DEBUG+channel*0x40] = 7; // clear debug error flags
 	usleep(100);
 	dma_reg.gpioreg[DMA_CS+channel*0x40] = DMA_CS_PRIORITY(7) | DMA_CS_PANIC_PRIORITY(7) | DMA_CS_DISDEBUG |DMA_CS_ACTIVE;
+	Started=true;
 	return 0;
 }
 
@@ -139,6 +140,7 @@ int dma::stop()
 	usleep(100);
 	dma_reg.gpioreg[DMA_DEBUG+channel*0x40] = 7; // clear debug error flags
 	usleep(100);
+	Started=false;
     return 0;
 }
 
@@ -260,7 +262,7 @@ int bufferdma::PushSample(int Index)
 		if(last_sample>buffersize/4)
 		{
 			 start(); // 1/4 Fill buffer before starting DMA
-			Started=true;
+			
 		}
 		
 	
