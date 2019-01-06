@@ -61,69 +61,31 @@ This program is free software: you can redistribute it and/or modify
 			// PCM FIFO = 64
 			if(syncwithpwm)
 			{
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
-				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
-				cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
-				cbp->length = 4*(16+1);
-				cbp->stride = 0;
-				cbp->next = mem_virt_to_phys(cbp + 1);
-				cbp++;
+				SetEasyCB(cbp++,0,dma_pwm,16+1);
 			}
 			else
 			{
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
-				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed PCM
-				cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
-				cbp->length = 4*(64+1);
-				cbp->stride = 0;
-				cbp->next = mem_virt_to_phys(cbp + 1);
-				//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
-				cbp++;
+				SetEasyCB(cbp++,0,dma_pcm,64+1);
+				
 			}
 			
 			for (uint32_t samplecnt = 0; samplecnt < buffersize-2; samplecnt++) 
 			{ 
-			
-								
+							
 				//Set Amplitude  to FSEL for amplitude=0
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-				cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]); 
-				cbp->dst = 0x7E000000 + (GPFSEL0<<2)+GENERAL_BASE; 				
-				cbp->length = 4;
-				cbp->stride = 0;
-				cbp->next = mem_virt_to_phys(cbp + 1); 
-				cbp++;
-
-								
+				SetEasyCB(cbp++,samplecnt*registerbysample,dma_fsel,1);
 				// Delay
-				if(syncwithpwm)
-					cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
-				else
-					cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
-				cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
-				if(syncwithpwm)		
-					cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
-				else
-					cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
-				cbp->length = 4;
-				cbp->stride = 0;
-				cbp->next = mem_virt_to_phys(cbp + 1);
-				//fprintf(stderr,"cbp : sample %d pointer %p src %x dest %x next %x\n",samplecnt,cbp,cbp->src,cbp->dst,cbp->next);
-				cbp++;
+				SetEasyCB(cbp++,samplecnt*registerbysample,syncwithpwm?dma_pwm:dma_pcm,1);
+				
 			
 			}
 			lastcbp=cbp;
 
 			// Last CBP before stopping : disable output
 			sampletab[buffersize*registerbysample-1]=(Originfsel & ~(7 << 12)) | (0 << 12); //Disable Clk
-			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP  ;
-			cbp->src = mem_virt_to_phys(&usermem[(buffersize*registerbysample-1)]); 
-			cbp->dst = 0x7E000000 + (GPFSEL0<<2)+GENERAL_BASE; 				
-			cbp->length = 4;
-			cbp->stride = 0;
+			SetEasyCB(cbp,buffersize*registerbysample-1,dma_fsel,1);
 			cbp->next = 0; // Stop DMA			
-		
-		//fprintf(stderr,"Last cbp %p:  src %x dest %x next %x\n",cbp,cbp->src,cbp->dst,cbp->next);
+			
 }
 	void ookburst::SetSymbols(unsigned char *Symbols,uint32_t Size)
 	{

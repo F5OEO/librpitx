@@ -18,6 +18,7 @@ This program is free software: you can redistribute it and/or modify
 
 #include "dma.h"
 #include "stdio.h"
+#include "util.h"
 
 extern "C"
 {
@@ -164,6 +165,33 @@ bool dma::isunderflow()
 {
 	//if((dma_reg.gpioreg[DMA_CS+channel*0x40]&DMA_CS_INT)>0)	fprintf(stderr,"Status:%x\n",dma_reg.gpioreg[DMA_CS+channel*0x40]);
 	 return ((dma_reg.gpioreg[DMA_CS+channel*0x40]&DMA_CS_INT)>0);
+}
+
+bool dma::SetCB(dma_cb_t *cbp,uint32_t dma_flag,uint32_t src,uint32_t dst,uint32_t repeat)
+{
+			cbp->info = dma_flag;
+			cbp->src = src;
+			cbp->dst = dst;
+			cbp->length = 4*repeat;
+			cbp->stride = 0;
+			cbp->next = mem_virt_to_phys(cbp + 1);	
+			return true;	
+}
+
+bool dma::SetEasyCB(dma_cb_t *cbp,uint32_t index,dma_common_reg dst,uint32_t repeat)
+{
+	uint32_t flag=BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP;
+	uint32_t src=mem_virt_to_phys(&usermem[index]);
+	switch(dst)
+	{
+		case dma_pllc_frac :break;
+		case dma_fsel:break;
+		case dma_pad:break;
+		case dma_pwm : flag|=BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);break;
+		case dma_pcm : flag|=BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);break;
+	}
+	SetCB(cbp,flag,src,dst,repeat);
+	return true;
 }
 
 //**************************************** BUFFER DMA ********************************************************

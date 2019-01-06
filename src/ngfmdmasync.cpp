@@ -74,31 +74,12 @@ void ngfmdmasync::SetDmaAlgo()
 			
 			
 			// Write a frequency sample
-
-			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP ;
-			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]);
-			cbp->dst = 0x7E000000 + (PLLC_FRAC<<2) + CLK_BASE ; 
-			cbp->length = 4;
-			cbp->stride = 0;
-			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+			SetEasyCB(cbp,samplecnt*registerbysample,dma_pllc_frac,1);
 			cbp++;
 			
-				
+			
 			// Delay
-			if(syncwithpwm)
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
-			else
-				cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PCM_TX);
-			cbp->src = mem_virt_to_phys(cbarray); // Data is not important as we use it only to feed the PWM
-			if(syncwithpwm)		
-				cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
-			else
-				cbp->dst = 0x7E000000 + (PCM_FIFO_A<<2) + PCM_BASE ;
-			cbp->length = 4;
-			cbp->stride = 0;
-			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+			SetEasyCB(cbp,samplecnt*registerbysample,syncwithpwm?dma_pwm:dma_pcm,1);
 			cbp++;
 			
 		}
@@ -119,7 +100,7 @@ void ngfmdmasync::SetFrequencySample(uint32_t Index,float Frequency)
 void ngfmdmasync::SetFrequencySamples(float *sample,size_t Size)
 {
 	size_t NbWritten=0;
-	int OSGranularity=100;
+	int OSGranularity=200;
 
 	long int start_time;
 	long time_difference=0;
@@ -133,19 +114,20 @@ void ngfmdmasync::SetFrequencySamples(float *sample,size_t Size)
 		int TimeToSleep=1e6*((int)buffersize*3/4-Available)/SampleRate-OSGranularity; // Sleep for theorically fill 3/4 of Fifo
 		if(TimeToSleep>0)
 		{
-			//fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
+			fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
 			usleep(TimeToSleep);
 		}
 		else
 		{
-			//fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
 			sched_yield();
 		}
 		clock_gettime(CLOCK_REALTIME, &gettime_now);
 		time_difference = gettime_now.tv_nsec - start_time;
 		if(time_difference<0) time_difference+=1E9;
-		//fprintf(stderr,"Measure samplerate=%d\n",(int)((GetBufferAvailable()-Available)*1e9/time_difference));
-		Available=GetBufferAvailable();
+		int NewAvailable=GetBufferAvailable();
+		fprintf(stderr,"Newavailable %d Measure samplerate=%d\n",NewAvailable,(int)((GetBufferAvailable()-Available)*1e9/time_difference));
+		Available=NewAvailable;
 		int Index=GetUserMemIndex();
 		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;
 		

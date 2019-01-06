@@ -62,17 +62,10 @@ void serialdmasync::SetDmaAlgo()
 			for (uint32_t samplecnt = 0; samplecnt < buffersize; samplecnt++) 
 			{ 
 			
-							
-			cbp->info = BCM2708_DMA_NO_WIDE_BURSTS | BCM2708_DMA_WAIT_RESP |BCM2708_DMA_D_DREQ  | BCM2708_DMA_PER_MAP(DREQ_PWM);
-			cbp->src = mem_virt_to_phys(&usermem[samplecnt*registerbysample]); 
-			cbp->dst = 0x7E000000 + (PWM_FIFO<<2) + PWM_BASE ;
-			cbp->length = 4;
-			cbp->stride = 0;
-			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
-			cbp++;
+				SetEasyCB(cbp,samplecnt*registerbysample,dma_pwm,1);
+				cbp++;
 			
-		}
+			}
 					
 		cbp--;
 		cbp->next = mem_virt_to_phys(cbarray); // We loop to the first CB
