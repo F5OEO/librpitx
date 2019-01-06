@@ -158,7 +158,7 @@ void atv::SetDmaAlgo()
     }
     cbp--;
     cbp->next = mem_virt_to_phys(cbarray); // We loop to the first CB
-    fprintf(stderr, "Last cbp :  %d \n", ((unsigned int)(cbp) - (unsigned int)(cbarray)) / sizeof(dma_cb_t));
+    dbg_printf(1, "Last cbp :  %d \n", ((unsigned int)(cbp) - (unsigned int)(cbarray)) / sizeof(dma_cb_t));
 }
 
 void atv::SetFrame(unsigned char *Luminance, size_t Lines)

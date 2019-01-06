@@ -44,7 +44,7 @@ void fmdmasync::SetDmaAlgo()
 			cbp->length = 4;
 			cbp->stride = 0;
 			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+			//dbg_printf(1,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
 			cbp++;
 			
 					
@@ -56,13 +56,13 @@ void fmdmasync::SetDmaAlgo()
 			cbp->length = 4;
 			cbp->stride = 0;
 			cbp->next = mem_virt_to_phys(cbp + 1);
-			//fprintf(stderr,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
+			//dbg_printf(1,"cbp : sample %x src %x dest %x next %x\n",samplecnt,cbp->src,cbp->dst,cbp->next);
 			cbp++;
 		}
 					
 		cbp--;
 		cbp->next = mem_virt_to_phys(cbarray); // We loop to the first CB
-		//fprintf(stderr,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
+		//dbg_printf(1,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
 }
 
 void fmdmasync::FillMemory(uint32_t FreqDivider,uint32_t FreqFractionnal)

@@ -89,7 +89,7 @@ This program is free software: you can redistribute it and/or modify
 }
 	void ookburst::SetSymbols(unsigned char *Symbols,uint32_t Size)
 	{
-		if(Size>buffersize-2) {fprintf(stderr,"Buffer overflow\n");return;}
+		if(Size>buffersize-2) {dbg_printf(1,"Buffer overflow\n");return;}
 
 		dma_cb_t *cbp=cbarray;
 		cbp++; // Skip the first which is the Fiiling of Fifo
@@ -103,7 +103,7 @@ This program is free software: you can redistribute it and/or modify
 			cbp++;//SKIP FSEL CB
 			cbp->next = mem_virt_to_phys(cbp + 1);
 			
-			//fprintf(stderr,"cbp : sample %d pointer %p src %x dest %x next %x\n",i,cbp,cbp->src,cbp->dst,cbp->next);
+			//dbg_printf(1,"cbp : sample %d pointer %p src %x dest %x next %x\n",i,cbp,cbp->src,cbp->dst,cbp->next);
 			cbp++;	
 			
 		}
@@ -148,7 +148,7 @@ This program is free software: you can redistribute it and/or modify
 				ookrenderbuffer[n++]=TabSymbols[i].value;
 				if(n>=m_MaxMessage) 
 				{
-					fprintf(stderr,"OOK Message too long abort time(%d/%d)\n",n,m_MaxMessage);
+					dbg_printf(1,"OOK Message too long abort time(%d/%d)\n",n,m_MaxMessage);
 					return;
 				}
 			}	

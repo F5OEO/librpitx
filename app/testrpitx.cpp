@@ -723,7 +723,7 @@ int main(int argc, char *argv[])
 		sa.sa_handler = terminate;
 		sigaction(i, &sa, NULL);
 	}
-
+	dbg_setlevel(0);
 	//SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
@@ -733,6 +733,6 @@ int main(int argc, char *argv[])
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
 	//AlectoOOK(Freq);
-	//RfSwitchOOK(Freq);
-	SimpleTestAtv(Freq);
+	RfSwitchOOK(Freq);
+	//SimpleTestAtv(Freq);
 }

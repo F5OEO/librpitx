@@ -24,6 +24,7 @@ extern "C" {
 #include <unistd.h>
 #include <sys/timex.h>
 #include <math.h>
+#include "util.h"
 
 gpio::gpio(uint32_t base, uint32_t len)
 {
@@ -120,7 +121,7 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
 		break;
 	}
-	//fprintf(stderr, "Freq = %llu\n", Freq);
+	//dbg_printf(1, "Freq = %llu\n", Freq);
 
 	return Freq;
 }
@@ -131,7 +132,7 @@ int clkgpio::SetClkDivFrac(uint32_t Div, uint32_t Frac)
 	gpioreg[GPCLK_DIV] = 0x5A000000 | ((Div) << 12) | Frac;
 	usleep(100);	
 	
-	//fprintf(stderr, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
+	//dbg_printf(1, "Clk Number %d div %d frac %d\n", pllnumber, Div, Frac);
 	
 	return 0;
 }
@@ -139,7 +140,7 @@ int clkgpio::SetClkDivFrac(uint32_t Div, uint32_t Frac)
 int clkgpio::SetMasterMultFrac(uint32_t Mult, uint32_t Frac)
 {
 
-	//fprintf(stderr,"Master Mult %d Frac %d\n",Mult,Frac);
+	//dbg_printf(1,"Master Mult %d Frac %d\n",Mult,Frac);
 	gpioreg[PLLC_CTRL] = (0x5a << 24) | (0x21 << 12) | Mult; //PDIV=1
 	usleep(100);
 	gpioreg[PLLC_FRAC] = 0x5A000000 | Frac;
@@ -170,7 +171,7 @@ int clkgpio::SetFrequency(double Frequency)
 		uint32_t FreqDivider = (uint32_t)Freqresult;
 		uint32_t FreqFractionnal = (uint32_t)(4096 * (Freqresult - (double)FreqDivider));
 		if ((FreqDivider > 4096) || (FreqDivider < 2))
-			fprintf(stderr, "Frequency out of range\n");
+			dbg_printf(1, "Frequency out of range\n");
 		printf("DIV/FRAC %u/%u \n", FreqDivider, FreqFractionnal);
 		
 		SetClkDivFrac(FreqDivider, FreqFractionnal);
@@ -221,12 +222,12 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	bool cross_boundary=false;
 	if(Frequency<MIN_PLL_RATE/4095)
 	{
-		fprintf(stderr, "Frequency too low !!!!!!\n"); 
+		dbg_printf(1, "Frequency too low !!!!!!\n"); 
 		return -1;
 	} 
 	if(Frequency*2>MAX_PLL_RATE)
 	{
-		fprintf(stderr, "Frequency too high !!!!!!\n");
+		dbg_printf(1, "Frequency too high !!!!!!\n");
 		return -1;
 	} 
 	if(Frequency*2>MIN_PLL_RATE_USE_PDIV)
@@ -247,7 +248,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 			min_int_multiplier = ((int)((double)(Frequency - Bandwidth) * divider * xtal_freq_recip));
 			if (min_int_multiplier != max_int_multiplier)
 			{
-				//fprintf(stderr,"Warning : cross boundary frequency\n");
+				//dbg_printf(1,"Warning : cross boundary frequency\n");
 				best_divider=divider; 
 				cross_boundary=true;
 				continue; // don't cross integer boundary	
@@ -265,13 +266,13 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	if (best_divider!=0)
 	{
 		PllFixDivider = best_divider;
-		if(cross_boundary) fprintf(stderr,"Warning : cross boundary frequency\n");
-		fprintf(stderr, "Found PLL solution for frequency %4.1fMHz : divider:%d VCO: %4.1fMHz\n", (Frequency/1e6), PllFixDivider,(Frequency/1e6) *((PllFixDivider==1)?2.0:(double)PllFixDivider));
+		if(cross_boundary) dbg_printf(1,"Warning : cross boundary frequency\n");
+		dbg_printf(1, "Found PLL solution for frequency %4.1fMHz : divider:%d VCO: %4.1fMHz\n", (Frequency/1e6), PllFixDivider,(Frequency/1e6) *((PllFixDivider==1)?2.0:(double)PllFixDivider));
 		return 0;
 	}
 	else
 	{
-		fprintf(stderr, "Central frequency not available !!!!!!\n");
+		dbg_printf(1, "Central frequency not available !!!!!!\n");
 		return -1;
 	}
 }
@@ -332,13 +333,13 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		{
 			ana[i] = gpioreg[(A2W_PLLC_ANA0 ) + i];
 			usleep(100);
-			//fprintf(stderr,"PLLC %d =%x\n",i,ana[i]);
+			//dbg_printf(1,"PLLC %d =%x\n",i,ana[i]);
 			ana[i] &= ~(1<<14);
 		}
 
 		if(PllFixDivider==1) 
 		{
-			fprintf(stderr,"Use PLL Prediv\n");
+			dbg_printf(1,"Use PLL Prediv\n");
 			ana[1] |= (1 << 14); // use prediv means Frequency*2
 		}
 		else	
@@ -357,22 +358,22 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		{
 			ana[i]|=(0x5A << 24) ;
 			gpioreg[(A2W_PLLC_ANA0 ) + i] = ana[i];
-			//fprintf(stderr,"Write %d = %x\n",i,ana[i]);
+			//dbg_printf(1,"Write %d = %x\n",i,ana[i]);
 			usleep(100);
 			
 		}
 		/*
 		for (int i = 3; i >= 0; i--)
 		{
-				fprintf(stderr,"PLLC after %d =%x\n",i,gpioreg[(A2W_PLLC_ANA0 ) + i]);
+				dbg_printf(1,"PLLC after %d =%x\n",i,gpioreg[(A2W_PLLC_ANA0 ) + i]);
 		}
 		*/
 		SetFrequency(0);
 		usleep(100);
 		if ((gpioreg[CM_LOCK] & CM_LOCK_FLOCKC) > 0)
-			fprintf(stderr, "Master PLLC Locked\n");
+			dbg_printf(1, "Master PLLC Locked\n");
 		else
-			fprintf(stderr, "Warning ! Master PLLC NOT Locked !!!!\n");
+			dbg_printf(1, "Warning ! Master PLLC NOT Locked !!!!\n");
 		
 		usleep(100);
 		gpioreg[GPCLK_CNTL] = 0x5A000000 | (Mash << 9) | pllnumber | (1 << 4); //4 is START CLK
@@ -445,7 +446,7 @@ void clkgpio::SetPLLMasterLoop(int Ki,int Kp,int Ka)
 		//Fixe me : Should make a OR with old value
 		ana[1]&=(uint32_t)~((0x7<<A2W_PLL_KI_SHIFT)|(0xF<<A2W_PLL_KP_SHIFT)|(0x7<<A2W_PLL_KA_SHIFT));
 		ana[1]|=(Ki<<A2W_PLL_KI_SHIFT)|(Kp<<A2W_PLL_KP_SHIFT)|(Ka<<A2W_PLL_KA_SHIFT);
-		fprintf(stderr,"Loop parameter =%x\n",ana[1]);
+		dbg_printf(1,"Loop parameter =%x\n",ana[1]);
 		for (int i = 3; i >= 0; i--)
 		{
 			gpioreg[(A2W_PLLC_ANA0 ) + i] = (0x5A << 24) | ana[i];
@@ -574,7 +575,7 @@ void clkgpio::enableclk(int gpio)
 		gengpio.setmode(gpio, fsel_alt0);
 		break;	
 	default:
-		fprintf(stderr, "gpio %d has no clk - available(4,20,32,34)\n", gpio);
+		dbg_printf(1, "gpio %d has no clk - available(4,20,32,34)\n", gpio);
 		break;
 	}
 	usleep(100);
@@ -603,13 +604,13 @@ void clkgpio::SetppmFromNTP()
 
 	if (status != TIME_OK)
 	{
-		fprintf(stderr, "Warning: NTP calibrate failed\n");
+		dbg_printf(1, "Warning: NTP calibrate failed\n");
 	}
 	else
 	{
 
 		ntp_ppm = (double)ntx.freq / (double)(1 << 16);
-		fprintf(stderr, "Info:NTP find ppm=%f\n", ntp_ppm);
+		dbg_printf(1, "Info:NTP find ppm=%f\n", ntp_ppm);
 		if (fabs(ntp_ppm) < 200)
 			Setppm(ntp_ppm);
 	}
@@ -680,7 +681,7 @@ void pwmgpio::enablepwm(int gpio, int PwmNumber)
 			break;
 
 		default:
-			fprintf(stderr, "gpio %d has no pwm - available(12,18,40)\n", gpio);
+			dbg_printf(1, "gpio %d has no pwm - available(12,18,40)\n", gpio);
 			break;
 		}
 	}
@@ -701,7 +702,7 @@ void pwmgpio::enablepwm(int gpio, int PwmNumber)
 			gengpio.setmode(gpio, fsel_alt0);
 			break;
 		default:
-			fprintf(stderr, "gpio %d has no pwm - available(13,19,41,45)\n", gpio);
+			dbg_printf(1, "gpio %d has no pwm - available(13,19,41,45)\n", gpio);
 			break;
 		}
 	}
@@ -741,8 +742,8 @@ int pwmgpio::SetFrequency(uint64_t Frequency)
 	uint32_t FreqDivider = (uint32_t)Freqresult;
 	uint32_t FreqFractionnal = (uint32_t)(4096 * (Freqresult - (double)FreqDivider));
 	if ((FreqDivider > 4096) || (FreqDivider < 2))
-		fprintf(stderr, "Frequency out of range\n");
-	fprintf(stderr, "PWM clk=%d / %d\n", FreqDivider, FreqFractionnal);
+		dbg_printf(1, "Frequency out of range\n");
+	dbg_printf(1, "PWM clk=%d / %d\n", FreqDivider, FreqFractionnal);
 	clk.gpioreg[PWMCLK_DIV] = 0x5A000000 | ((FreqDivider) << 12) | FreqFractionnal;
 
 	usleep(100);
@@ -764,10 +765,10 @@ int pwmgpio::SetPrediv(int predivisor) //Mode should be only for SYNC or a Data 
 	Prediv = predivisor;
 	if (Prediv > 32)
 	{
-		fprintf(stderr, "PWM Prediv is max 32\n");
+		dbg_printf(1, "PWM Prediv is max 32\n");
 		Prediv = 2;
 	}
-	fprintf(stderr, "PWM Prediv %d\n", Prediv);
+	dbg_printf(1, "PWM Prediv %d\n", Prediv);
 	gpioreg[PWM_RNG1] = Prediv; // 250 -> 8KHZ
 	usleep(100);
 	gpioreg[PWM_RNG2] = Prediv; // 32 Mandatory for Serial Mode without gap
@@ -836,7 +837,7 @@ int pcmgpio::ComputePrediv(uint64_t Frequency)
 		double Freqresult = (double)Pllfrequency / (double)(Frequency * prediv);
 		if ((Freqresult < 4096.0) && (Freqresult > 2.0))
 		{
-			fprintf(stderr, "PCM prediv = %d\n", prediv);
+			dbg_printf(1, "PCM prediv = %d\n", prediv);
 			break;
 		}
 	}
@@ -849,9 +850,9 @@ int pcmgpio::SetFrequency(uint64_t Frequency)
 	double Freqresult = (double)Pllfrequency / (double)(Frequency * Prediv);
 	uint32_t FreqDivider = (uint32_t)Freqresult;
 	uint32_t FreqFractionnal = (uint32_t)(4096 * (Freqresult - (double)FreqDivider));
-	fprintf(stderr, "PCM clk=%d / %d\n", FreqDivider, FreqFractionnal);
+	dbg_printf(1, "PCM clk=%d / %d\n", FreqDivider, FreqFractionnal);
 	if ((FreqDivider > 4096) || (FreqDivider < 2))
-		fprintf(stderr, "PCM Frequency out of range\n");
+		dbg_printf(1, "PCM Frequency out of range\n");
 	clk.gpioreg[PCMCLK_DIV] = 0x5A000000 | ((FreqDivider) << 12) | FreqFractionnal;
 	SetPrediv(Prediv);
 	return 0;
@@ -861,7 +862,7 @@ int pcmgpio::SetPrediv(int predivisor) //Carefull we use a 10 fixe divisor for n
 {
 	if (predivisor > 1000)
 	{
-		fprintf(stderr, "PCM prediv should be <1000");
+		dbg_printf(1, "PCM prediv should be <1000");
 		predivisor = 1000;
 	}
 

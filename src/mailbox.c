@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 
 #include "mailbox.h"
-
+#include "util.h"
 
 
 void *mapmem(unsigned base, unsigned size)
@@ -49,7 +49,7 @@ void *mapmem(unsigned base, unsigned size)
    base = base - offset;
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-      fprintf(stderr,"can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
+      dbg_printf(1,"can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
       exit (-1);
    }
    void *mem = mmap(
@@ -60,10 +60,10 @@ void *mapmem(unsigned base, unsigned size)
       mem_fd,
       base);
 #ifdef DEBUG
-   fprintf(stderr,"base=0x%x, mem=%p\n", base, mem);
+   dbg_printf(1,"base=0x%x, mem=%p\n", base, mem);
 #endif
    if (mem == MAP_FAILED) {
-      fprintf(stderr,"mmap error %p\n", mem);
+      dbg_printf(1,"mmap error %p\n", mem);
       exit (-1);
    }
    close(mem_fd);
@@ -74,7 +74,7 @@ void *unmapmem(void *addr, unsigned size)
 {
    int s = munmap(addr, size);
    if (s != 0) {
-      fprintf(stderr,"munmap error %d\n", s);
+      dbg_printf(1,"munmap error %d\n", s);
       exit (-1);
    }
 
@@ -90,7 +90,7 @@ static int mbox_property(int file_desc, void *buf)
    int ret_val = ioctl(file_desc, IOCTL_MBOX_PROPERTY, buf);
 
    if (ret_val < 0) {
-      fprintf(stderr,"ioctl_set_msg failed:%d\n", ret_val);
+      dbg_printf(1,"ioctl_set_msg failed:%d\n", ret_val);
    }
 
 #ifdef DEBUG
@@ -262,9 +262,9 @@ unsigned get_clocks(int file_desc ) //FixMe !!!!!!
    p[0] = i*sizeof *p; // actual size
 
    mbox_property(file_desc, p);
-   fprintf(stderr,"Clock size = %d\n",p[4]&0xFFF);
-   for(i=0;i<128/4;i++) fprintf(stderr,"%x ",p[i]);
-   fprintf(stderr,"\n");
+   dbg_printf(1,"Clock size = %d\n",p[4]&0xFFF);
+   for(i=0;i<128/4;i++) dbg_printf(1,"%x ",p[i]);
+   dbg_printf(1,"\n");
    return p[5];
 }
 
@@ -274,7 +274,7 @@ int mbox_open() {
     // Open a char device file used for communicating with kernel mbox driver.
     file_desc = open(VCIO_DEVICE_FILE_NAME, 0);
     if(file_desc >= 0) {
-        fprintf(stderr,"Using mbox device " VCIO_DEVICE_FILE_NAME ".\n");
+        dbg_printf(1,"Using mbox device " VCIO_DEVICE_FILE_NAME ".\n");
         return file_desc;
     }
     
@@ -282,14 +282,14 @@ int mbox_open() {
     unlink(LOCAL_DEVICE_FILE_NAME);
     if(mknod(LOCAL_DEVICE_FILE_NAME, S_IFCHR|0600, makedev(MAJOR_NUM_A, 0)) >= 0 &&
         (file_desc = open(LOCAL_DEVICE_FILE_NAME, 0)) >= 0) {
-        fprintf(stderr,"Using local mbox device file with major %d.\n", MAJOR_NUM_A);
+        dbg_printf(1,"Using local mbox device file with major %d.\n", MAJOR_NUM_A);
         return file_desc;
     }
 
     unlink(LOCAL_DEVICE_FILE_NAME);
     if(mknod(LOCAL_DEVICE_FILE_NAME, S_IFCHR|0600, makedev(MAJOR_NUM_B, 0)) >= 0 &&
         (file_desc = open(LOCAL_DEVICE_FILE_NAME, 0)) >= 0) {
-        fprintf(stderr,"Using local mbox device file with major %d.\n", MAJOR_NUM_B);
+        dbg_printf(1,"Using local mbox device file with major %d.\n", MAJOR_NUM_B);
         return file_desc;
     }
 

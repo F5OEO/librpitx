@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PAGE_SIZE (4*1024)
 
+extern "C"
+{
 
 int mbox_open();
 void mbox_close(int file_desc);
@@ -54,4 +56,5 @@ unsigned execute_code(int file_desc, unsigned code, unsigned r0, unsigned r1, un
 unsigned execute_qpu(int file_desc, unsigned num_qpus, unsigned control, unsigned noflush, unsigned timeout);
 unsigned qpu_enable(int file_desc, unsigned enable);
 unsigned get_clocks(int file_desc );
+}
 #endif

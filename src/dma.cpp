@@ -32,13 +32,13 @@ extern "C"
 
 dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to check to be 256 Aligned for UserMem
 { 
-	fprintf(stderr,"Channel %d CBSize %u UsermemSize %u\n",Channel,CBSize,UserMemSize);
+	dbg_printf(1,"Channel %d CBSize %u UsermemSize %u\n",Channel,CBSize,UserMemSize);
 	
 	channel=Channel;
     mbox.handle = mbox_open();
 	if (mbox.handle < 0)
 	{
-		fprintf(stderr,"Failed to open mailbox\n");
+		dbg_printf(1,"Failed to open mailbox\n");
 		
 	}
 	cbsize=CBSize;
@@ -47,20 +47,20 @@ dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to che
 	GetRpiInfo(); // Fill mem_flag and dram_phys_base
     uint32_t MemoryRequired=CBSize*sizeof(dma_cb_t)+UserMemSize*sizeof(uint32_t);
     int NumPages=(MemoryRequired/PAGE_SIZE)+1;
-    fprintf(stderr,"%d Size NUM PAGES %d PAGE_SIZE %d\n",MemoryRequired,NumPages,PAGE_SIZE);
+    dbg_printf(1,"%d Size NUM PAGES %d PAGE_SIZE %d\n",MemoryRequired,NumPages,PAGE_SIZE);
 	mbox.mem_ref = mem_alloc(mbox.handle, NumPages* PAGE_SIZE, PAGE_SIZE, mem_flag);
 	/* TODO: How do we know that succeeded? */
-	//fprintf(stderr,"mem_ref %x\n", mbox.mem_ref);
+	//dbg_printf(1,"mem_ref %x\n", mbox.mem_ref);
 	mbox.bus_addr = mem_lock(mbox.handle, mbox.mem_ref);
-	//fprintf(stderr,"bus_addr = %x\n", mbox.bus_addr);
+	//dbg_printf(1,"bus_addr = %x\n", mbox.bus_addr);
 	mbox.virt_addr = (uint8_t *)mapmem(BUS_TO_PHYS(mbox.bus_addr), NumPages* PAGE_SIZE);
-	//fprintf(stderr,"virt_addr %p\n", mbox.virt_addr);
+	//dbg_printf(1,"virt_addr %p\n", mbox.virt_addr);
 	virtbase = (uint8_t *)((uint32_t *)mbox.virt_addr);
-	//fprintf(stderr,"virtbase %p\n", virtbase);
+	//dbg_printf(1,"virtbase %p\n", virtbase);
     cbarray = (dma_cb_t *)virtbase; // We place DMA Control Blocks (CB) at beginning of virtual memory
-	//fprintf(stderr,"cbarray %p\n", cbarray);
+	//dbg_printf(1,"cbarray %p\n", cbarray);
     usermem= (unsigned int *)(virtbase+CBSize*sizeof(dma_cb_t)); // user memory is placed after
-	//fprintf(stderr,"usermem %p\n", usermem);
+	//dbg_printf(1,"usermem %p\n", usermem);
 
 	dma_reg.gpioreg[DMA_CS+channel*0x40] = BCM2708_DMA_RESET|DMA_CS_INT; // Remove int flag
 	usleep(100);
@@ -90,7 +90,7 @@ void dma::GetRpiInfo()
 	}
 	else
 	{
-		fprintf(stderr,"Unknown Raspberry architecture\n");
+		dbg_printf(1,"Unknown Raspberry architecture\n");
 	}
 }
 
@@ -148,7 +148,7 @@ int dma::stop()
 int dma::getcbposition()
 {
 	volatile uint32_t dmacb=(uint32_t)(dma_reg.gpioreg[DMA_CONBLK_AD+channel*0x40]);
-	//fprintf(stderr,"cb=%x\n",dmacb);
+	//dbg_printf(1,"cb=%x\n",dmacb);
 	if(dmacb>0)
 		return mem_phys_to_virt(dmacb)-(size_t)virtbase;
 	else
@@ -163,7 +163,7 @@ bool dma::isrunning()
 
 bool dma::isunderflow()
 {
-	//if((dma_reg.gpioreg[DMA_CS+channel*0x40]&DMA_CS_INT)>0)	fprintf(stderr,"Status:%x\n",dma_reg.gpioreg[DMA_CS+channel*0x40]);
+	//if((dma_reg.gpioreg[DMA_CS+channel*0x40]&DMA_CS_INT)>0)	dbg_printf(1,"Status:%x\n",dma_reg.gpioreg[DMA_CS+channel*0x40]);
 	 return ((dma_reg.gpioreg[DMA_CS+channel*0x40]&DMA_CS_INT)>0);
 }
 
@@ -200,7 +200,7 @@ bufferdma::bufferdma(int Channel,uint32_t tbuffersize,uint32_t tcbbysample,uint3
 	buffersize=tbuffersize;
 	cbbysample=tcbbysample;
 	registerbysample=tregisterbysample;
-	fprintf(stderr,"BufferSize %d , cb %d user %d\n",buffersize,buffersize*cbbysample,buffersize*registerbysample);
+	dbg_printf(1,"BufferSize %d , cb %d user %d\n",buffersize,buffersize*cbbysample,buffersize*registerbysample);
 	
 	current_sample=0;
 	last_sample=0;
@@ -227,29 +227,29 @@ int bufferdma::GetBufferAvailable()
 		}
 		else
 		{
-			fprintf(stderr,"DMA WEIRD STATE\n");
+			dbg_printf(1,"DMA WEIRD STATE\n");
 			current_sample=0;
 		}
-		//fprintf(stderr,"CurrentCB=%d\n",current_sample);
+		//dbg_printf(1,"CurrentCB=%d\n",current_sample);
 		diffsample=current_sample-last_sample;
 		if(diffsample<0) diffsample+=buffersize;
 
-		//fprintf(stderr,"cur %d last %d diff%d\n",current_sample,last_sample,diffsample);
+		//dbg_printf(1,"cur %d last %d diff%d\n",current_sample,last_sample,diffsample);
 	}
 	else
 	{
 		//last_sample=buffersize-1;
 		diffsample=buffersize;
 		current_sample=0;
-		//fprintf(stderr,"Warning DMA stopped \n");
-		//fprintf(stderr,"S:cur %d last %d diff%d\n",current_sample,last_sample,diffsample);
+		//dbg_printf(1,"Warning DMA stopped \n");
+		//dbg_printf(1,"S:cur %d last %d diff%d\n",current_sample,last_sample,diffsample);
 	}
 	
 	/*
 	if(isunderflow())
 	{
-	fprintf(stderr,"cur %d last %d \n",current_sample,last_sample);	 	
-	 fprintf(stderr,"Underflow\n");
+	dbg_printf(1,"cur %d last %d \n",current_sample,last_sample);	 	
+	 dbg_printf(1,"Underflow\n");
 	}*/
 	
 	return diffsample; 
@@ -260,7 +260,7 @@ int bufferdma::GetUserMemIndex()
 {
 	
 	int IndexAvailable=-1;
-	//fprintf(stderr,"Avail=%d\n",GetBufferAvailable());
+	//dbg_printf(1,"Avail=%d\n",GetBufferAvailable());
 	if(GetBufferAvailable()>0)
 	{
 		IndexAvailable=last_sample+1;

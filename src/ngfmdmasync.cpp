@@ -86,14 +86,14 @@ void ngfmdmasync::SetDmaAlgo()
 					
 		cbp--;
 		cbp->next = mem_virt_to_phys(cbarray); // We loop to the first CB
-		//fprintf(stderr,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
+		//dbg_printf(1,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
 }
 
 void ngfmdmasync::SetFrequencySample(uint32_t Index,float Frequency)
 {
 	Index=Index%buffersize;	
 	sampletab[Index]=(0x5A<<24)|GetMasterFrac(Frequency);
-	//fprintf(stderr,"Frac=%d\n",GetMasterFrac(Frequency));
+	//dbg_printf(1,"Frac=%d\n",GetMasterFrac(Frequency));
 	PushSample(Index);
 }
 
@@ -114,19 +114,19 @@ void ngfmdmasync::SetFrequencySamples(float *sample,size_t Size)
 		int TimeToSleep=1e6*((int)buffersize*3/4-Available)/SampleRate-OSGranularity; // Sleep for theorically fill 3/4 of Fifo
 		if(TimeToSleep>0)
 		{
-			fprintf(stderr,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
+			dbg_printf(1,"buffer size %d Available %d SampleRate %d Sleep %d\n",buffersize,Available,SampleRate,TimeToSleep);
 			usleep(TimeToSleep);
 		}
 		else
 		{
-			fprintf(stderr,"No Sleep %d\n",TimeToSleep);	
+			dbg_printf(1,"No Sleep %d\n",TimeToSleep);	
 			sched_yield();
 		}
 		clock_gettime(CLOCK_REALTIME, &gettime_now);
 		time_difference = gettime_now.tv_nsec - start_time;
 		if(time_difference<0) time_difference+=1E9;
 		int NewAvailable=GetBufferAvailable();
-		fprintf(stderr,"Newavailable %d Measure samplerate=%d\n",NewAvailable,(int)((GetBufferAvailable()-Available)*1e9/time_difference));
+		dbg_printf(1,"Newavailable %d Measure samplerate=%d\n",NewAvailable,(int)((GetBufferAvailable()-Available)*1e9/time_difference));
 		Available=NewAvailable;
 		int Index=GetUserMemIndex();
 		int ToWrite=((int)Size-(int)NbWritten)<Available?Size-NbWritten:Available;

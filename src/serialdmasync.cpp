@@ -69,7 +69,7 @@ void serialdmasync::SetDmaAlgo()
 					
 		cbp--;
 		cbp->next = mem_virt_to_phys(cbarray); // We loop to the first CB
-		//fprintf(stderr,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
+		//dbg_printf(1,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
 }
 
 void serialdmasync::SetSample(uint32_t Index,int Sample)

@@ -75,7 +75,7 @@ void dsp::pushsample(std::complex<float> sample)
 	amplitude=abs(sample);	
 
     double phase=atan2(sample.imag(),sample.real());
-	//fprintf(stderr,"phase %f\n",phase);
+	//dbg_printf(1,"phase %f\n",phase);
     phase=unwrap(prev_phase,phase);
 
     double dp= phase-prev_phase;
