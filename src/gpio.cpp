@@ -67,7 +67,7 @@ dmagpio::dmagpio() : gpio(GetPeripheralBase() + DMA_BASE, DMA_LEN)
 // ***************** CLK Registers *****************************************
 clkgpio::clkgpio() : gpio(GetPeripheralBase() + CLK_BASE, CLK_LEN)
 {
-	//SetppmFromNTP();
+	SetppmFromNTP();
 	padgpio level;
 	level.setlevel(7); //MAX Power 
 }
@@ -102,6 +102,7 @@ int clkgpio::SetPllNumber(int PllNo, int MashType)
 uint64_t clkgpio::GetPllFrequency(int PllNo)
 {
 	uint64_t Freq = 0;
+	SetppmFromNTP();
 	switch (PllNo)
 	{
 	case clk_osc:
@@ -121,7 +122,8 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
 		break;
 	}
-	//dbg_printf(1, "Freq = %llu\n", Freq);
+	Freq=Freq*(1.0-clk_ppm*1e-6);
+	dbg_printf(1, "Freq PLL no %d= %llu\n",PllNo, Freq);
 
 	return Freq;
 }
@@ -588,7 +590,7 @@ void clkgpio::disableclk(int gpio)
 
 void clkgpio::Setppm(double ppm)
 {
-	clk_ppm = ppm - 2.0; // -2 is empiric : FixMe
+	clk_ppm = ppm ; // -2 is empiric : FixMe
 }
 
 void clkgpio::SetppmFromNTP()
@@ -610,9 +612,11 @@ void clkgpio::SetppmFromNTP()
 	{
 
 		ntp_ppm = (double)ntx.freq / (double)(1 << 16);
-		dbg_printf(1, "Info:NTP find ppm=%f\n", ntp_ppm);
+		dbg_printf(1, "Info:NTP find offset %ld freq %ld pps=%ld ppm=%f\n", ntx.offset,ntx.freq,ntx.ppsfreq,ntp_ppm);
+		
 		if (fabs(ntp_ppm) < 200)
-			Setppm(ntp_ppm);
+			Setppm(ntp_ppm/*+0.70*/); //0.7 is empiric 
+			
 	}
 }
 
@@ -732,6 +736,7 @@ int pwmgpio::SetPllNumber(int PllNo, int MashType)
 
 uint64_t pwmgpio::GetPllFrequency(int PllNo)
 {
+	
 	return clk.GetPllFrequency(PllNo);
 }
 
