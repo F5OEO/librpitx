@@ -17,6 +17,7 @@ This program is free software: you can redistribute it and/or modify
 
 #include "stdio.h"
 #include "fskburst.h"
+#include "util.h"
 #include <unistd.h>
 
 	fskburst::fskburst(uint64_t TuneFrequency,uint32_t SymbolRate,float Deviation,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+3,2,1),freqdeviation(Deviation)
@@ -78,7 +79,7 @@ This program is free software: you can redistribute it and/or modify
 			
 
 				// Write a frequency sample
-				SetEasyCB(cbp++,samplecnt*registerbysample,dma_pllc_frac,1);//Enable clk
+				SetEasyCB(cbp++,samplecnt*registerbysample,dma_pllc_frac,1);//FReq
 								
 				// Delay
 				SetEasyCB(cbp++,samplecnt*registerbysample,syncwithpwm?dma_pwm:dma_pcm,1);
@@ -99,7 +100,7 @@ This program is free software: you can redistribute it and/or modify
 		cbp+=2; // Skip the first 2 CB (initialisation)
 		for(unsigned int i=0;i<Size;i++)
 		{
-			sampletab[i]=(0x5A<<24)|GetMasterFrac((Symbols[i]==0)?-freqdeviation:freqdeviation);
+			sampletab[i]=(0x5A<<24)|GetMasterFrac(freqdeviation*Symbols[i]);
 			cbp++;//SKIP FREQ CB
 			cbp->next = mem_virt_to_phys(cbp + 1);
 			cbp++;
