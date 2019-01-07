@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-
+#include <sys/sysmacros.h>
 #include "mailbox.h"
 #include "util.h"
 
@@ -49,7 +49,7 @@ void *mapmem(unsigned base, unsigned size)
    base = base - offset;
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-      dbg_printf(1,"can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
+      dbg_printf(0,"can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
       exit (-1);
    }
    void *mem = mmap(
