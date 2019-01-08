@@ -26,7 +26,7 @@ This program is free software: you can redistribute it and/or modify
 		clkgpio::SetAdvancedPllMode(true);
 		clkgpio::SetCenterFrequency(TuneFrequency,SymbolRate); // Write Mult Int and Frac : FixMe carrier is already there
 		clkgpio::SetFrequency(0);
-		
+		disableclk(4);
 		syncwithpwm=false;
 	
 		if(syncwithpwm)
@@ -40,12 +40,14 @@ This program is free software: you can redistribute it and/or modify
 			pcmgpio::SetFrequency(SymbolRate);
 		}
 	
-	
+		//Should be obligatory place before setdmaalgo
+		Originfsel=clkgpio::gengpio.gpioreg[GPFSEL0];
+		dbg_printf(1,"FSK Origin fsel %x\n",Originfsel);
 	   
 		SetDmaAlgo();
 
-		padgpio pad;
-		Originfsel=pad.gpioreg[PADS_GPIO_0];
+		
+		
 	}
 
 	fskburst::~fskburst()
@@ -54,8 +56,9 @@ This program is free software: you can redistribute it and/or modify
 
 	void fskburst::SetDmaAlgo()
 {
-			sampletab[buffersize*registerbysample-2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Enable Clk
-			sampletab[buffersize*registerbysample-1]=(Originfsel & ~(7 << 12)) | (0 << 12); //Disable Clk
+		
+			sampletab[buffersize*registerbysample-2]=(Originfsel & ~(7 << 12)) | (4 << 12); //Gpio  Clk
+			sampletab[buffersize*registerbysample-1]=(Originfsel & ~(7 << 12)) | (0 << 12); //Gpio  In
 
 			dma_cb_t *cbp = cbarray;
 			// We must fill the FIFO (PWM or PCM) to be Synchronized from start
@@ -86,11 +89,12 @@ This program is free software: you can redistribute it and/or modify
 			
 			}
 			lastcbp=cbp;
-			
+
 			SetEasyCB(cbp,buffersize*registerbysample-1,dma_fsel,1);//Disable clk
+			
 			cbp->next = 0; // Stop DMA			
 		
-		//dbg_printf(1,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
+		dbg_printf(2,"Last cbp :  src %x dest %x next %x\n",cbp->src,cbp->dst,cbp->next);
 }
 	void fskburst::SetSymbols(unsigned char *Symbols,uint32_t Size)
 	{
@@ -112,9 +116,11 @@ This program is free software: you can redistribute it and/or modify
 		dma::start();
 		while(isrunning()) //Block function : return until sent completely signal
 		{
+			//dbg_printf(1,"GPIO %x\n",clkgpio::gengpio.gpioreg[GPFSEL0]);
 			usleep(100);
 			
 		}
+		dbg_printf(1,"FSK burst end Tx\n",cbp->src,cbp->dst,cbp->next);
 		usleep(100);//To be sure last symbol Tx ?
 				
 	}

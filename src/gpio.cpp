@@ -173,8 +173,8 @@ int clkgpio::SetFrequency(double Frequency)
 		uint32_t FreqDivider = (uint32_t)Freqresult;
 		uint32_t FreqFractionnal = (uint32_t)(4096 * (Freqresult - (double)FreqDivider));
 		if ((FreqDivider > 4096) || (FreqDivider < 2))
-			dbg_printf(1, "Frequency out of range\n");
-		printf("DIV/FRAC %u/%u \n", FreqDivider, FreqFractionnal);
+			dbg_printf(0, "Frequency out of range\n");
+		dbg_printf(1,"DIV/FRAC %u/%u \n", FreqDivider, FreqFractionnal);
 		
 		SetClkDivFrac(FreqDivider, FreqFractionnal);
 	}

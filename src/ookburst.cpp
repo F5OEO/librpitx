@@ -18,6 +18,7 @@ This program is free software: you can redistribute it and/or modify
 #include "stdio.h"
 #include <unistd.h>
 #include "ookburst.h"
+#include "util.h"
 
 
 	ookburst::ookburst(uint64_t TuneFrequency,uint32_t SymbolRate,int Channel,uint32_t FifoSize):bufferdma(Channel,FifoSize+2,2,1)
@@ -42,11 +43,11 @@ This program is free software: you can redistribute it and/or modify
 		}
 	
 	
-	   
+	   Originfsel=clkgpio::gengpio.gpioreg[GPFSEL0];
 		SetDmaAlgo();
 
-		padgpio pad;
-		Originfsel=pad.gpioreg[PADS_GPIO_0];
+		
+		
 	}
 
 	ookburst::~ookburst()

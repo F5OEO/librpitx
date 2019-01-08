@@ -21,7 +21,7 @@ This program is free software: you can redistribute it and/or modify
 #include "iqdmasync.h"
 #include <unistd.h>
 #include <sched.h>
-
+#include "util.h"
 
 iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize,int Mode):bufferdma(Channel,FifoSize,4,3)
 {
@@ -51,8 +51,7 @@ iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t Fif
 	
 	mydsp.samplerate=SampleRate;
    
-	padgpio pad;
-	Originfsel=pad.gpioreg[PADS_GPIO_0];
+	Originfsel=clkgpio::gengpio.gpioreg[GPFSEL0];
 
 	SetDmaAlgo();
 
@@ -65,8 +64,7 @@ iqdmasync::iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t Fif
 
 iqdmasync::~iqdmasync()
 {
-	padgpio pad;
-	pad.gpioreg[PADS_GPIO_0]=Originfsel;
+	clkgpio::gengpio.gpioreg[GPFSEL0]=Originfsel;
 	clkgpio::disableclk(4);	
 }
 
