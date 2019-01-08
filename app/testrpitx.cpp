@@ -733,6 +733,6 @@ int main(int argc, char *argv[])
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
 	//AlectoOOK(Freq);
-	RfSwitchOOK(Freq);
-	//SimpleTestAtv(Freq);
+	//RfSwitchOOK(Freq);
+	SimpleTestAtv(Freq);
 }
