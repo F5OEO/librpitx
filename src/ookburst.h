@@ -12,8 +12,10 @@ class ookburst:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	uint32_t Originfsel;
 	bool syncwithpwm;
 	dma_cb_t *lastcbp;
+	size_t SR_upsample=1;
+	size_t Ramp=0.0;
 	public:
-	ookburst(uint64_t TuneFrequency,uint32_t SymbolRate,int Channel,uint32_t FifoSize);
+	ookburst(uint64_t TuneFrequency,float SymbolRate,int Channel,uint32_t FifoSize, size_t upsample=1,float RatioRamp=0.0);
 	~ookburst();
 	void SetDmaAlgo();
 	

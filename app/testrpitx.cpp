@@ -283,9 +283,9 @@ void SimpleTestAm(uint64_t Freq)
 void SimpleTestOOK(uint64_t Freq)
 {
 
-	int SR = 1000;
+	int SR = 10; //10 HZ
 	int FifoSize = 21; //24
-	ookburst ook(Freq, SR, 14, FifoSize);
+	ookburst ook(Freq, SR, 14, FifoSize,100);
 
 	unsigned char TabSymbol[FifoSize] = {0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0};
 
@@ -733,6 +733,6 @@ int main(int argc, char *argv[])
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
 	//AlectoOOK(Freq);
-	//RfSwitchOOK(Freq);
-	SimpleTestAtv(Freq);
+	RfSwitchOOK(Freq);
+	//SimpleTestAtv(Freq);
 }
