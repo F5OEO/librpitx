@@ -1,7 +1,7 @@
 all: testrpitx 
 
-CFLAGS	= -Wall -g -O3 -Wno-unused-variable 
-LDFLAGS	= -lm -lrt -lpthread 
+CFLAGS	= -Wall -g -O3 -Wno-unused-variable -I /opt/vc/include 
+LDFLAGS	= -lm -lrt -lpthread -L/opt/vc/lib -lbcm_host
 CCP = g++ 
 CC = gcc 
 

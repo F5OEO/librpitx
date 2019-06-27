@@ -1,6 +1,6 @@
 CFLAGS = -Wall -O3 -Wno-unused-variable
-CXXFLAGS = -std=c++11 -Wall -O3 -Wno-unused-variable
-LDFLAGS = -lm -lrt -lpthread
+CXXFLAGS = -std=c++11 -Wall -O3 -Wno-unused-variable -I /opt/vc/include 
+LDFLAGS = -lm -lrt -lpthread -L/opt/vc/lib -lbcm_host
 CCP = c++
 CC = cc
 

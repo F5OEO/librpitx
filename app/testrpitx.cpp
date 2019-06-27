@@ -701,6 +701,13 @@ void SimpleTestAtv(uint64_t Freq)
 	}
 }
 
+void info(void)
+{
+	clkgpio clk;
+	clk.print_clock_tree();
+
+}
+
 static void
 terminate(int num)
 {
@@ -723,7 +730,7 @@ int main(int argc, char *argv[])
 		sa.sa_handler = terminate;
 		sigaction(i, &sa, NULL);
 	}
-	dbg_setlevel(0);
+	dbg_setlevel(1);
 	//SimpleTest(Freq);
 	//SimpleTestbpsk(Freq);
 	//SimpleTestFileIQ(Freq);
@@ -733,6 +740,9 @@ int main(int argc, char *argv[])
 	//SimpleTestBurstFsk(Freq);
 	//SimpleTestOOKTiming(Freq);
 	//AlectoOOK(Freq);
-	RfSwitchOOK(Freq);
+	//RfSwitchOOK(Freq);
+	//SimpleTestbpsk(Freq);
+
 	//SimpleTestAtv(Freq);
+	info();
 }

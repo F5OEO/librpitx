@@ -25,6 +25,8 @@ extern "C" {
 #include <sys/timex.h>
 #include <math.h>
 #include "util.h"
+#include <bcm_host.h>
+//#include "/opt/vc/include/bcm_host.h"
 
 gpio::gpio(uint32_t base, uint32_t len)
 {
@@ -42,7 +44,9 @@ gpio::~gpio()
 uint32_t gpio::GetPeripheralBase()
 {
 	RASPBERRY_PI_INFO_T info;
-	uint32_t BCM2708_PERI_BASE = 0;
+	uint32_t BCM2708_PERI_BASE =  bcm_host_get_peripheral_address();
+	dbg_printf(1,"Peri Base = %x\n",BCM2708_PERI_BASE);
+	/*
 	if (getRaspberryPiInformation(&info) > 0)
 	{
 		if (info.peripheralBase == RPI_BROADCOM_2835_PERIPHERAL_BASE)
@@ -54,7 +58,7 @@ uint32_t gpio::GetPeripheralBase()
 		{
 			BCM2708_PERI_BASE = info.peripheralBase;
 		}
-	}
+	}*/
 	return BCM2708_PERI_BASE;
 }
 
