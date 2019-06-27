@@ -45,7 +45,12 @@ uint32_t gpio::GetPeripheralBase()
 {
 	RASPBERRY_PI_INFO_T info;
 	uint32_t BCM2708_PERI_BASE =  bcm_host_get_peripheral_address();
-	dbg_printf(1,"Peri Base = %x\n",BCM2708_PERI_BASE);
+	dbg_printf(1,"Peri Base = %x SDRAM %x\n",bcm_host_get_peripheral_address(),bcm_host_get_sdram_address());
+	if(BCM2708_PERI_BASE==0)
+	{
+		dbg_printf(0,"Unknown peripheral base, swith to PI4 \n");
+		BCM2708_PERI_BASE=0xfe000000;  
+	}
 	/*
 	if (getRaspberryPiInformation(&info) > 0)
 	{

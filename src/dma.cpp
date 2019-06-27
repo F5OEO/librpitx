@@ -19,6 +19,7 @@ This program is free software: you can redistribute it and/or modify
 #include "dma.h"
 #include "stdio.h"
 #include "util.h"
+#include <bcm_host.h>
 
 extern "C"
 {
@@ -71,27 +72,16 @@ dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to che
 
 void dma::GetRpiInfo()
 {
-	RASPBERRY_PI_INFO_T info;
-	if (getRaspberryPiInformation(&info) > 0)
-	{
-		if(info.peripheralBase==RPI_BROADCOM_2835_PERIPHERAL_BASE)
-		{
-			
-			 dram_phys_base   =  0x40000000;
-			 mem_flag         =  MEM_FLAG_L1_NONALLOCATING|MEM_FLAG_HINT_PERMALOCK|MEM_FLAG_NO_INIT;//0x0c;
-		}
+	dram_phys_base= bcm_host_get_sdram_address();
 
-		if((info.peripheralBase==RPI_BROADCOM_2836_PERIPHERAL_BASE)||(info.peripheralBase==RPI_BROADCOM_2837_PERIPHERAL_BASE))
-		{
-			
-			 dram_phys_base   =  0xc0000000;
-			 mem_flag         =  MEM_FLAG_DIRECT|MEM_FLAG_HINT_PERMALOCK|MEM_FLAG_NO_INIT;// 0x04;
-		}
-	}
-	else
+	mem_flag =  MEM_FLAG_HINT_PERMALOCK|MEM_FLAG_NO_INIT;//0x0c;
+	switch(dram_phys_base)
 	{
-		dbg_printf(1,"Unknown Raspberry architecture\n");
+		case 0x40000000 : mem_flag |=MEM_FLAG_L1_NONALLOCATING;break;
+		case 0xC0000000 : mem_flag |=MEM_FLAG_DIRECT;break;
+		default: dbg_printf(0,"Unknown Raspberry architecture\n");
 	}
+	
 }
 
 dma::~dma()
