@@ -7,7 +7,9 @@
 
 class gpio
 {
-
+	public:
+  bool pi_is_2711=false;	
+  uint64_t XOSC_FREQUENCY=19200000; 
   public:
 	volatile uint32_t *gpioreg = NULL;
 	uint32_t gpiolen;
@@ -57,7 +59,7 @@ class dmagpio : public gpio
 //************************************ GENERAL GPIO ***************************************
 
 #define GENERAL_BASE (0x00200000)
-#define GENERAL_LEN 0xB4
+#define GENERAL_LEN 0xD0
 
 #define GPFSEL0 (0x00 / 4)
 #define GPFSEL1 (0x04 / 4)
@@ -65,6 +67,11 @@ class dmagpio : public gpio
 #define GPPUD (0x94 / 4)
 #define GPPUDCLK0 (0x98 / 4)
 #define GPPUDCLK1 (0x9C / 4)
+
+#define GPPUPPDN0 (0xBC/4)
+#define GPPUPPDN1 (0xC0/4)
+#define GPPUPPDN2 (0xC4/4)
+#define GPPUPPDN3 (0xC8/4)
 
 enum
 {
@@ -104,6 +111,8 @@ class generalgpio : public gpio
 #define GPCLK_DIV_2 (0x84 / 4)
 #define EMMCCLK_CNTL (0x1C0 / 4)
 #define EMMCCLK_DIV (0x1C4 / 4)
+#define CM_EMMC2CTL		(0x1d0/4)
+#define CM_EMMC2DIV		(0x1d4/4)
 
 #define CM_VPUCTL 0x008
 #define CM_VPUDIV 0x00c
@@ -246,8 +255,8 @@ class generalgpio : public gpio
 #define PLLH_STS (0x1660 / 4)
 
 #define XOSC_CTRL (0x1190 / 4)
-#define XOSC_FREQUENCY 19200000
-
+//#define XOSC_FREQUENCY 19200000
+//#define XOSC_FREQUENCY 54000000
 //Parent PLL
 enum
 {

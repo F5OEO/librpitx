@@ -41,7 +41,7 @@ phasedmasync::phasedmasync(uint64_t TuneFrequency,uint32_t SampleRateIn,int Numb
 	clkgpio::SetAdvancedPllMode(true);
 	
 	clkgpio::ComputeBestLO(tunefreq,0); // compute PWM divider according to MasterPLL clkgpio::PllFixDivider
-	double FloatMult=((double)(tunefreq)*clkgpio::PllFixDivider)/(double)(XOSC_FREQUENCY);
+	double FloatMult=((double)(tunefreq)*clkgpio::PllFixDivider)/(double)(pwmgpio::XOSC_FREQUENCY);
 	uint32_t freqctl = FloatMult*((double)(1<<20)) ; 
 	int IntMultiply= freqctl>>20; // Need to be calculated to have a center frequency
 	freqctl&=0xFFFFF; // Fractionnal is 20bits

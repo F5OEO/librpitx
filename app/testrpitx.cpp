@@ -701,10 +701,40 @@ void SimpleTestAtv(uint64_t Freq)
 	}
 }
 
-void info(void)
+void info(uint64_t Freq)
 {
+	generalgpio genpio;
+	fprintf(stderr, "GPIOPULL =%x\n", genpio.gpioreg[GPPUDCLK0]);
+
+#define PULL_OFF 0
+#define PULL_DOWN 1
+#define PULL_UP 2
+	/*genpio.gpioreg[GPPUD] = 0; //PULL_DOWN;
+	usleep(150);
+	genpio.gpioreg[GPPUDCLK0] = (1 << 4); //GPIO CLK is GPIO 4
+	usleep(150);
+	genpio.gpioreg[GPPUDCLK0] = (0); //GPIO CLK is GPIO 4
+	*/
+	//genpio.setpulloff(4);
+
+	padgpio pad;
+	pad.setlevel(7);
+
 	clkgpio clk;
 	clk.print_clock_tree();
+	clk.SetPllNumber(clk_plld, 2);
+	clk.enableclk(4);
+	//clk.SetAdvancedPllMode(true);
+	//clk.SetPLLMasterLoop(0,4,0);
+	//clk.Setppm(+7.7);
+	clk.SetCenterFrequency(Freq, 1000);
+	double freqresolution = clk.GetFrequencyResolution();
+	double RealFreq = clk.GetRealFrequency(0);
+	fprintf(stderr, "Frequency resolution=%f Error freq=%f\n", freqresolution, RealFreq);
+	int Deviation = 0;
+	clk.SetFrequency(000);
+	sleep(10);
+	clk.disableclk(4);
 
 }
 
@@ -744,5 +774,5 @@ int main(int argc, char *argv[])
 	//SimpleTestbpsk(Freq);
 
 	//SimpleTestAtv(Freq);
-	info();
+	info(Freq);
 }

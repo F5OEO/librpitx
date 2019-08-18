@@ -31,7 +31,8 @@ extern "C" {
 gpio::gpio(uint32_t base, uint32_t len)
 {
 
-	gpioreg = (uint32_t *)mapmem(base, len);
+	
+	gpioreg = (uint32_t *)mapmem(GetPeripheralBase()+base, len);
 	gpiolen=len;	
 }
 
@@ -41,40 +42,84 @@ gpio::~gpio()
 		unmapmem((void*)gpioreg,gpiolen);
 	
 }
+
+uint32_t get_hwbase(void)
+{
+    const char *ranges_file = "/proc/device-tree/soc/ranges";
+    uint8_t ranges[12];
+    FILE *fd;
+    uint32_t ret = 0;
+
+    memset(ranges, 0, sizeof(ranges));
+
+    if ((fd = fopen(ranges_file, "rb")) == NULL)
+    {
+        printf("Can't open '%s'\n", ranges_file);
+    }
+    else if (fread(ranges, 1, sizeof(ranges), fd) >= 8)
+    {
+        ret = (ranges[4] << 24) |
+              (ranges[5] << 16) |
+              (ranges[6] << 8) |
+              (ranges[7] << 0);
+        if (!ret)
+            ret = (ranges[8] << 24) |
+                  (ranges[9] << 16) |
+                  (ranges[10] << 8) |
+                  (ranges[11] << 0);
+        if ((ranges[0] != 0x7e) ||
+                (ranges[1] != 0x00) ||
+                (ranges[2] != 0x00) ||
+                (ranges[3] != 0x00) ||
+                ((ret != 0x20000000) && (ret != 0x3f000000) && (ret != 0xfe000000)))
+        {
+            printf("Unexpected ranges data (%02x%02x%02x%02x %02x%02x%02x%02x %02x%02x%02x%02x)\n",
+                   ranges[0], ranges[1], ranges[2], ranges[3],
+                   ranges[4], ranges[5], ranges[6], ranges[7],
+                   ranges[8], ranges[9], ranges[10], ranges[11]);
+            ret = 0;
+        }
+    }
+    else
+    {
+	printf("Ranges data too short\n");
+    }
+
+    fclose(fd);
+
+    return ret;
+}
+
 uint32_t gpio::GetPeripheralBase()
 {
 	RASPBERRY_PI_INFO_T info;
-	uint32_t BCM2708_PERI_BASE =  bcm_host_get_peripheral_address();
-	dbg_printf(1,"Peri Base = %x SDRAM %x\n",bcm_host_get_peripheral_address(),bcm_host_get_sdram_address());
+	uint32_t BCM2708_PERI_BASE =bcm_host_get_peripheral_address();
+	dbg_printf(1,"Peri Base = %x SDRAM %x\n",/*get_hwbase()*/bcm_host_get_peripheral_address(),bcm_host_get_sdram_address());
+	if(BCM2708_PERI_BASE==0xFE000000) // Fixme , could be inspect without this hardcoded value
+	{
+		pi_is_2711=true;  //Rpi4
+		XOSC_FREQUENCY=54000000;
+	}
 	if(BCM2708_PERI_BASE==0)
 	{
 		dbg_printf(0,"Unknown peripheral base, swith to PI4 \n");
-		BCM2708_PERI_BASE=0xfe000000;  
+		BCM2708_PERI_BASE=0xfe000000;
+		XOSC_FREQUENCY=54000000;
+		pi_is_2711=true;  
 	}
-	/*
-	if (getRaspberryPiInformation(&info) > 0)
-	{
-		if (info.peripheralBase == RPI_BROADCOM_2835_PERIPHERAL_BASE)
-		{
-			BCM2708_PERI_BASE = info.peripheralBase;
-		}
-
-		if ((info.peripheralBase == RPI_BROADCOM_2836_PERIPHERAL_BASE) || (info.peripheralBase == RPI_BROADCOM_2837_PERIPHERAL_BASE))
-		{
-			BCM2708_PERI_BASE = info.peripheralBase;
-		}
-	}*/
+	if(pi_is_2711)
+		dbg_printf(1,"Running on Pi4\n");
 	return BCM2708_PERI_BASE;
 }
 
 //******************** DMA Registers ***************************************
 
-dmagpio::dmagpio() : gpio(GetPeripheralBase() + DMA_BASE, DMA_LEN)
+dmagpio::dmagpio() : gpio( DMA_BASE, DMA_LEN)
 {
 }
 
 // ***************** CLK Registers *****************************************
-clkgpio::clkgpio() : gpio(GetPeripheralBase() + CLK_BASE, CLK_LEN)
+clkgpio::clkgpio() : gpio(CLK_BASE, CLK_LEN)
 {
 	SetppmFromNTP();
 	padgpio level;
@@ -118,21 +163,21 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq = XOSC_FREQUENCY;
 		break;
 	case clk_plla:
-		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLA_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLA_FRAC] / (1 << 20);
+		Freq =  (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLA_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLA_FRAC] / (1 << 20))/(2*(gpioreg[PLLA_CTRL] >> 12)&0x7);
 		break;
 	//case clk_pllb:Freq=XOSC_FREQUENCY*((uint64_t)gpioreg[PLLB_CTRL]&0x3ff) +XOSC_FREQUENCY*(uint64_t)gpioreg[PLLB_FRAC]/(1<<20);break;
 	case clk_pllc:
-		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC] / (1 << 20);
+		Freq = (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC] / (1 << 20))/(2*(gpioreg[PLLC_CTRL] >> 12)&0x7) ;
 		break;
 	case clk_plld:
-		Freq = (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLD_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLD_FRAC]) / (1 << 20)) / (gpioreg[PLLD_PER] >> 1);
+		Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLD_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLD_FRAC]) / (1 << 20)) / (2*gpioreg[PLLD_PER] >> 1))/((gpioreg[PLLD_CTRL] >> 12)&0x7) ;
 		break;
 	case clk_hdmi:
-		Freq = XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20);
+		Freq =( XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20))/(2*(gpioreg[PLLH_CTRL] >> 12)&0x7) ;
 		break;
 	}
 	Freq=Freq*(1.0-clk_ppm*1e-6);
-	dbg_printf(1, "Freq PLL no %d= %llu\n",PllNo, Freq);
+	dbg_printf(1, "Pi4=%d Xosc = %llu Freq PLL no %d= %llu\n",pi_is_2711,XOSC_FREQUENCY,PllNo, Freq);
 
 	return Freq;
 }
@@ -221,7 +266,8 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	#define MIN_PLL_RATE 200e6
 	#define MIN_PLL_RATE_USE_PDIV 1500e6 //1700 works but some ticky breaks in clock..PLL should be at limit
 	#define MAX_PLL_RATE 4e9
-	#define XTAL_RATE 19.2e6
+	#define XTAL_RATE XOSC_FREQUENCY
+	//Pi4 seems 54Mhz
 	double xtal_freq_recip = 1.0 / XTAL_RATE; // todo PPM correction
 	int best_divider = 0;
 
@@ -631,7 +677,7 @@ void clkgpio::SetppmFromNTP()
 
 // ************************************** GENERAL GPIO *****************************************************
 
-generalgpio::generalgpio() : gpio(GetPeripheralBase() + GENERAL_BASE, GENERAL_LEN)
+generalgpio::generalgpio() : gpio(/*GetPeripheralBase() + */GENERAL_BASE, GENERAL_LEN)
 {
 }
 
@@ -653,18 +699,32 @@ int generalgpio::setmode(uint32_t gpio, uint32_t mode)
 
 int generalgpio::setpulloff(uint32_t gpio)
 {
-	gpioreg[GPPUD]=0;
-	usleep(150);	
-	gpioreg[GPPUDCLK0]=1<<gpio;
-	usleep(150);	
-	gpioreg[GPPUDCLK0]=0;
+	if(!pi_is_2711)
+	{
+		gpioreg[GPPUD]=0;
+		usleep(150);	
+		gpioreg[GPPUDCLK0]=1<<gpio;
+		usleep(150);	
+		gpioreg[GPPUDCLK0]=0;
+	}
+	else
+	{
+		uint32_t bits;
+		uint32_t pull=0; // 0 OFF, 1 = UP, 2= DOWN
+		int shift = (gpio & 0xf) << 1;
+		bits = gpioreg[GPPUPPDN0 + (gpio>>4)];
+		bits &= ~(3 << shift);
+        bits |= (pull << shift);
+      	gpioreg[GPPUPPDN0 + (gpio>>4)] = bits;
+	}
+	
 	return 0;
 }
 
 
 // ********************************** PWM GPIO **********************************
 
-pwmgpio::pwmgpio() : gpio(GetPeripheralBase() + PWM_BASE, PWM_LEN)
+pwmgpio::pwmgpio() : gpio(/*GetPeripheralBase() + */PWM_BASE, PWM_LEN)
 {
 
 	gpioreg[PWM_CTL] = 0;
@@ -814,7 +874,7 @@ int pwmgpio::SetPrediv(int predivisor) //Mode should be only for SYNC or a Data 
 
 // ********************************** PCM GPIO (I2S) **********************************
 
-pcmgpio::pcmgpio() : gpio(GetPeripheralBase() + PCM_BASE, PCM_LEN)
+pcmgpio::pcmgpio() : gpio(PCM_BASE, PCM_LEN)
 {
 	gpioreg[PCM_CS_A] = 1; // Disable Rx+Tx, Enable PCM block
 }
@@ -899,7 +959,7 @@ int pcmgpio::SetPrediv(int predivisor) //Carefull we use a 10 fixe divisor for n
 
 // ********************************** PADGPIO (Amplitude) **********************************
 
-padgpio::padgpio() : gpio(GetPeripheralBase() + PADS_GPIO, PADS_GPIO_LEN)
+padgpio::padgpio() : gpio(PADS_GPIO, PADS_GPIO_LEN)
 {
 }
 
