@@ -21,7 +21,7 @@ class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 	uint32_t	Originfsel; //Save the original FSEL GPIO
 	uint32_t SampleRate;
 	public:
-	
+	int ModeIQ=MODE_IQ;
 	iqdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t FifoSize,int Mode);
 	~iqdmasync();
 	void SetDmaAlgo();
