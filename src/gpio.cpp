@@ -213,7 +213,15 @@ int clkgpio::SetFrequency(double Frequency)
 
 		double FloatMult=0;
 		if(PllFixDivider==1) //Using PDIV thus frequency/2
-		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+		{
+			if(pi_is_2711)
+		 		FloatMult = ((double)(CentralFrequency + Frequency)*2 ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6));
+			 else
+			 {
+				FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+			 }
+			 
+		}	 
 		else
 		{
 			if(pi_is_2711)
@@ -253,7 +261,15 @@ uint32_t clkgpio::GetMasterFrac(double Frequency)
 	{
 		double FloatMult=0;
 		if((PllFixDivider==1))//There is no Prediv on Pi4 //Using PDIV thus frequency/2
-		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+		{
+			if(pi_is_2711) // No PDIV on pi4
+		 		FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6));
+			else
+			{
+				FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
+			}
+				 
+		}	 
 		else
 		{
 			if(pi_is_2711)
@@ -432,7 +448,7 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 		}
 		else	
 		{
-		    ana[1]|=(0<<14); // No use prediv means Frequency
+		    ana[1]|=(0<<14); // No use prediv means Frequenc
 		}
 		/*
 	 * ANA register setup is done as a series of writes to
