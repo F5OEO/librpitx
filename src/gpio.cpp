@@ -167,7 +167,8 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		break;
 	//case clk_pllb:Freq=XOSC_FREQUENCY*((uint64_t)gpioreg[PLLB_CTRL]&0x3ff) +XOSC_FREQUENCY*(uint64_t)gpioreg[PLLB_FRAC]/(1<<20);break;
 	case clk_pllc:
-		Freq = (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC] / (1 << 20))/(2*(gpioreg[PLLC_CTRL] >> 12)&0x7) ;
+		//Freq = (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC]) / (1 << 20)) / (2*gpioreg[PLLC_PER] >> 1)) /((gpioreg[PLLC_CTRL] >> 12)&0x7) ;
+		Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC]) / (1 << 20)) / (2*gpioreg[PLLC_PER] >> 1))/((gpioreg[PLLC_CTRL] >> 12)&0x7) ;
 		break;
 	case clk_plld:
 		Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLD_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLD_FRAC]) / (1 << 20)) / (2*gpioreg[PLLD_PER] >> 1))/((gpioreg[PLLD_CTRL] >> 12)&0x7) ;
@@ -176,6 +177,7 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq =( XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20))/(2*(gpioreg[PLLH_CTRL] >> 12)&0x7) ;
 		break;
 	}
+	//if(pi_is_2711) Freq*=2LL;
 	Freq=Freq*(1.0-clk_ppm*1e-6);
 	dbg_printf(1, "Pi4=%d Xosc = %llu Freq PLL no %d= %llu\n",pi_is_2711,XOSC_FREQUENCY,PllNo, Freq);
 
@@ -213,7 +215,16 @@ int clkgpio::SetFrequency(double Frequency)
 		if(PllFixDivider==1) //Using PDIV thus frequency/2
 		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
 		else
-		 	FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+		{
+			if(pi_is_2711)
+		 		FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider*2 ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+			else
+			{
+				FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+			}
+				 
+		}
+
 		uint32_t freqctl = FloatMult * ((double)(1 << 20));
 		int IntMultiply = freqctl >> 20; // Need to be calculated to have a center frequency
 		freqctl &= 0xFFFFF;				 // Fractionnal is 20bits
@@ -241,10 +252,18 @@ uint32_t clkgpio::GetMasterFrac(double Frequency)
 	if (ModulateFromMasterPLL)
 	{
 		double FloatMult=0;
-		if(PllFixDivider==1) //Using PDIV thus frequency/2
+		if((PllFixDivider==1))//There is no Prediv on Pi4 //Using PDIV thus frequency/2
 		 	FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
 		else
-		 	FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+		{
+			if(pi_is_2711)
+		 		FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider*2 ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+			else
+			{
+				FloatMult = ((double)(CentralFrequency + Frequency)*PllFixDivider ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6)); 
+			}
+				 
+		}	 
 		uint32_t freqctl = FloatMult * ((double)(1 << 20));
 		int IntMultiply = freqctl >> 20; // Need to be calculated to have a center frequency
 		freqctl &= 0xFFFFF;				 // Fractionnal is 20bits
@@ -277,6 +296,8 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	double Multiplier=0.0;
 	best_divider = 0;
 	bool cross_boundary=false;
+
+	
 	if(Frequency<MIN_PLL_RATE/4095)
 	{
 		dbg_printf(1, "Frequency too low !!!!!!\n"); 
@@ -323,6 +344,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	if (best_divider!=0)
 	{
 		PllFixDivider = best_divider;
+		
 		if(cross_boundary) dbg_printf(1,"Warning : cross boundary frequency\n");
 		dbg_printf(1, "Found PLL solution for frequency %4.1fMHz : divider:%d VCO: %4.1fMHz\n", (Frequency/1e6), PllFixDivider,(Frequency/1e6) *((PllFixDivider==1)?2.0:(double)PllFixDivider));
 		return 0;
@@ -367,15 +389,18 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 	if (ModulateFromMasterPLL)
 	{
 		//Choose best PLLDiv and Div
-		ComputeBestLO(Frequency, Bandwidth); //FixeDivider update
-
 		
+		ComputeBestLO(Frequency, Bandwidth); //FixeDivider update
+		if(pi_is_2711)
+		{
+			PllFixDivider=PllFixDivider/2;
+		}
 		
 		if(PllFixDivider==1)
 		{
 			//We will use PDIV by 2, means like we have a 2 times more	
 			SetClkDivFrac(2, 0x0); // NO MASH !!!!
-			
+			dbg_printf(1, "Pll Fix Divider\n");
 			
 		}
 		else
@@ -457,6 +482,7 @@ void clkgpio::SetPhase(bool inversed)
 	clkgpio::gpioreg[GPCLK_CNTL] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 0 << 5;
 	//clkgpio::gpioreg[GPCLK_CNTL_2] = (0x5A << 24) | StateBefore | ((inversed ? 1 : 0) << 8) | 0 << 5;
 }
+//https://elinux.org/The_Undocumented_Pi
 //Should inspect https://github.com/raspberrypi/linux/blob/ffd7bf4085b09447e5db96edd74e524f118ca3fe/drivers/clk/bcm/clk-bcm2835.c#L695
 void clkgpio::SetAdvancedPllMode(bool Advanced)
 {
@@ -487,7 +513,14 @@ void clkgpio::SetAdvancedPllMode(bool Advanced)
 
 		
 		gpioreg[PLLC_CORE0] = 0x5A000000|(1<<8);//Disable 
-		gpioreg[PLLC_PER] = 0x5A000001; // Divisor
+		if(pi_is_2711)
+			gpioreg[PLLC_PER] = 0x5A000002; // Divisor by 2 (1 seems not working on pi4)
+		else
+		{
+			gpioreg[PLLC_PER] = 0x5A000001; // Divisor 1 for max frequence
+		}
+			
+
 		usleep(100);
 	}
 }
@@ -590,24 +623,25 @@ void clkgpio::print_clock_tree(void)
 
 	// Sometimes calculated frequencies are off by a factor of 2
 	// ANA1 bit 14 may indicate that a /2 prescaler is active
+	double xoscmhz=XOSC_FREQUENCY/1e6;
 	printf("PLLA PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLA_CTRL] >> 12)&0x7, gpioreg[PLLA_CTRL] & 0x3ff, gpioreg[PLLA_FRAC]);
-	printf(" %f MHz\n", 19.2 * ((float)(gpioreg[PLLA_CTRL] & 0x3ff) + ((float)gpioreg[PLLA_FRAC]) / ((float)(1 << 20))));
+	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLA_CTRL] & 0x3ff) + ((float)gpioreg[PLLA_FRAC]) / ((float)(1 << 20))));
 	printf("DSI0=%d CORE=%d PER=%d CCP2=%d\n\n", gpioreg[PLLA_DSI0], gpioreg[PLLA_CORE], gpioreg[PLLA_PER], gpioreg[PLLA_CCP2]);
 
 	printf("PLLB PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLB_CTRL] >> 12)&0x7, gpioreg[PLLB_CTRL] & 0x3ff, gpioreg[PLLB_FRAC]);
-	printf(" %f MHz\n", 19.2 * ((float)(gpioreg[PLLB_CTRL] & 0x3ff) + ((float)gpioreg[PLLB_FRAC]) / ((float)(1 << 20))));
+	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLB_CTRL] & 0x3ff) + ((float)gpioreg[PLLB_FRAC]) / ((float)(1 << 20))));
 	printf("ARM=%d SP0=%d SP1=%d SP2=%d\n\n", gpioreg[PLLB_ARM], gpioreg[PLLB_SP0], gpioreg[PLLB_SP1], gpioreg[PLLB_SP2]);
 
 	printf("PLLC PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLC_CTRL] >> 12)&0x7, gpioreg[PLLC_CTRL] & 0x3ff, gpioreg[PLLC_FRAC]);
-	printf(" %f MHz\n", 19.2 * ((float)(gpioreg[PLLC_CTRL] & 0x3ff) + ((float)gpioreg[PLLC_FRAC]) / ((float)(1 << 20))));
+	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLC_CTRL] & 0x3ff) + ((float)gpioreg[PLLC_FRAC]) / ((float)(1 << 20))));
 	printf("CORE2=%d CORE1=%d PER=%d CORE0=%d\n\n", gpioreg[PLLC_CORE2], gpioreg[PLLC_CORE1], gpioreg[PLLC_PER], gpioreg[PLLC_CORE0]);
 
 	printf("PLLD %x PDIV=%d NDIV=%d FRAC=%d  ", gpioreg[PLLD_CTRL], (gpioreg[PLLD_CTRL] >> 12)&0x7, gpioreg[PLLD_CTRL] & 0x3ff, gpioreg[PLLD_FRAC]);
-	printf(" %f MHz\n", 19.2 * ((float)(gpioreg[PLLD_CTRL] & 0x3ff) + ((float)gpioreg[PLLD_FRAC]) / ((float)(1 << 20))));
+	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLD_CTRL] & 0x3ff) + ((float)gpioreg[PLLD_FRAC]) / ((float)(1 << 20))));
 	printf("DSI0=%d CORE=%d PER=%d DSI1=%d\n\n", gpioreg[PLLD_DSI0], gpioreg[PLLD_CORE], gpioreg[PLLD_PER], gpioreg[PLLD_DSI1]);
 
 	printf("PLLH PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLH_CTRL] >> 12)&0x7, gpioreg[PLLH_CTRL] & 0x3ff, gpioreg[PLLH_FRAC]);
-	printf(" %f MHz\n", 19.2 * ((float)(gpioreg[PLLH_CTRL] & 0x3ff) + ((float)gpioreg[PLLH_FRAC]) / ((float)(1 << 20))));
+	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLH_CTRL] & 0x3ff) + ((float)gpioreg[PLLH_FRAC]) / ((float)(1 << 20))));
 	printf("AUX=%d RCAL=%d PIX=%d STS=%d\n\n", gpioreg[PLLH_AUX], gpioreg[PLLH_RCAL], gpioreg[PLLH_PIX], gpioreg[PLLH_STS]);
 }
 
