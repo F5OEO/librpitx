@@ -722,17 +722,28 @@ void info(uint64_t Freq)
 
 	clkgpio clk;
 	clk.print_clock_tree();
+	/* // THis fractional works on pi4
 	clk.SetPllNumber(clk_plld, 2);
+	clk.enableclk(4);
+	*/
+	clk.SetPllNumber(clk_pllc, 2);
+	clk.SetAdvancedPllMode(true);
 	clk.enableclk(4);
 	//clk.SetAdvancedPllMode(true);
 	//clk.SetPLLMasterLoop(0,4,0);
 	//clk.Setppm(+7.7);
 	clk.SetCenterFrequency(Freq, 1000);
+	clk.SetFrequency(0);
 	double freqresolution = clk.GetFrequencyResolution();
 	double RealFreq = clk.GetRealFrequency(0);
 	fprintf(stderr, "Frequency resolution=%f Error freq=%f\n", freqresolution, RealFreq);
 	int Deviation = 0;
-	clk.SetFrequency(000);
+	
+	for(int i=0;i<1000;i++)
+	{
+		clk.SetFrequency(i*100);
+		usleep(10000);
+	}
 	sleep(10);
 	clk.disableclk(4);
 
