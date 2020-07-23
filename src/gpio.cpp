@@ -390,11 +390,17 @@ int clkgpio::SetCenterFrequency(uint64_t Frequency, int Bandwidth)
 	{
 		//Choose best PLLDiv and Div
 		
-		ComputeBestLO(Frequency, Bandwidth); //FixeDivider update
+		
 		if(pi_is_2711)
 		{
-			PllFixDivider=PllFixDivider/2;
+			ComputeBestLO(Frequency*2, Bandwidth); //FixeDivider update
+			//PllFixDivider=PllFixDivider/2;
 		}
+		else
+		{
+			ComputeBestLO(Frequency, Bandwidth); //FixeDivider update
+		}
+		
 		
 		if(PllFixDivider==1)
 		{
