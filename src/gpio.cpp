@@ -263,7 +263,7 @@ uint32_t clkgpio::GetMasterFrac(double Frequency)
 		if((PllFixDivider==1))//There is no Prediv on Pi4 //Using PDIV thus frequency/2
 		{
 			if(pi_is_2711) // No PDIV on pi4
-		 		FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6));
+		 		FloatMult = ((double)(CentralFrequency + Frequency)*2 ) / ((double)(XOSC_FREQUENCY) * (1 - clk_ppm * 1e-6));
 			else
 			{
 				FloatMult = ((double)(CentralFrequency + Frequency) ) / ((double)(XOSC_FREQUENCY*2) * (1 - clk_ppm * 1e-6));
