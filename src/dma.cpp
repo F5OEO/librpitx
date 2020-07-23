@@ -33,9 +33,19 @@ extern "C"
 
 dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to check to be 256 Aligned for UserMem
 { 
+	
+	//Channel DMA is now hardcoded according to Raspi Model (DMA 7 for Pi4, DMA 14 for others)
+	uint32_t BCM2708_PERI_BASE =bcm_host_get_peripheral_address();
+	if(BCM2708_PERI_BASE==0xFE000000)
+	{
+		channel= 7; // Pi4
+	}
+	else
+	{
+		channel = 14; // Other Pi
+	}
 	dbg_printf(1,"Channel %d CBSize %u UsermemSize %u\n",Channel,CBSize,UserMemSize);
 	
-	channel=Channel;
     mbox.handle = mbox_open();
 	if (mbox.handle < 0)
 	{
@@ -46,6 +56,7 @@ dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to che
 	usermemsize=UserMemSize;
 
 	GetRpiInfo(); // Fill mem_flag and dram_phys_base
+
     uint32_t MemoryRequired=CBSize*sizeof(dma_cb_t)+UserMemSize*sizeof(uint32_t);
     int NumPages=(MemoryRequired/PAGE_SIZE)+1;
     dbg_printf(1,"%d Size NUM PAGES %d PAGE_SIZE %d\n",MemoryRequired,NumPages,PAGE_SIZE);
