@@ -7,6 +7,11 @@ void dbg_setlevel(int Level)
     debug_level=Level;
 }
 
+int dbg_getlevel()
+{
+    return debug_level;
+}
+
 void dbg_printf(int Level, const char *fmt, ...)
 {
     if (Level <= debug_level)

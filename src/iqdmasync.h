@@ -11,9 +11,7 @@
 
 class iqdmasync:public bufferdma,public clkgpio,public pwmgpio,public pcmgpio
 {
-        public:
-	int ModeIQ=MODE_IQ;                  //patch (LU7DID-PEC): place ModeIQ as public so it can be changed from a calling program  3-May-2020
-
+      
 	protected:
 	uint64_t tunefreq;
 	bool syncwithpwm;
