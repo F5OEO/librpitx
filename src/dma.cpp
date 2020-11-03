@@ -36,15 +36,20 @@ dma::dma(int Channel,uint32_t CBSize,uint32_t UserMemSize) // Fixme! Need to che
 	
 	//Channel DMA is now hardcoded according to Raspi Model (DMA 7 for Pi4, DMA 14 for others)
 	uint32_t BCM2708_PERI_BASE =bcm_host_get_peripheral_address();
+	
+	channel=Channel;
 	if(BCM2708_PERI_BASE==0xFE000000)
 	{
 		channel= 7; // Pi4
+		dbg_printf(1,"dma PI4 using channel %d\n",channel);
 	}
 	else
 	{
 		channel = 14; // Other Pi
+		dbg_printf(1,"dma (NOT a PI4)  using channel %d\n",channel);
 	}
-	dbg_printf(1,"Channel %d CBSize %u UsermemSize %u\n",Channel,CBSize,UserMemSize);
+	
+	dbg_printf(1,"channel %d CBSize %u UsermemSize %u\n",channel,CBSize,UserMemSize);
 	
     mbox.handle = mbox_open();
 	if (mbox.handle < 0)

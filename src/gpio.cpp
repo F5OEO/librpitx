@@ -177,7 +177,8 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 		Freq =( XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLH_CTRL] & 0x3ff) + XOSC_FREQUENCY * (uint64_t)gpioreg[PLLH_FRAC] / (1 << 20))/(2*(gpioreg[PLLH_CTRL] >> 12)&0x7) ;
 		break;
 	}
-	//if(pi_is_2711) Freq*=2LL;
+	if(!pi_is_2711) // FixMe : Surely a register which say it is a 2x
+		Freq*=2LL;
 	Freq=Freq*(1.0-clk_ppm*1e-6);
 	dbg_printf(1, "Pi4=%d Xosc = %llu Freq PLL no %d= %llu\n",pi_is_2711,XOSC_FREQUENCY,PllNo, Freq);
 
