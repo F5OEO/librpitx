@@ -19,7 +19,7 @@ This program is free software: you can redistribute it and/or modify
 #include "dma.h"
 #include "stdio.h"
 #include "util.h"
-#include <bcm_host.h>
+#include "rpi.h"
 
 extern "C"
 {
