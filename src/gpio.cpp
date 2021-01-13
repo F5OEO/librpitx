@@ -24,9 +24,9 @@ extern "C" {
 #include <unistd.h>
 #include <sys/timex.h>
 #include <math.h>
+#include <string.h>
 #include "util.h"
-#include <bcm_host.h>
-//#include "/opt/vc/include/bcm_host.h"
+#include "rpi.h"
 
 gpio::gpio(uint32_t base, uint32_t len)
 {
@@ -94,15 +94,16 @@ uint32_t gpio::GetPeripheralBase()
 {
 	RASPBERRY_PI_INFO_T info;
 	uint32_t BCM2708_PERI_BASE =bcm_host_get_peripheral_address();
-	dbg_printf(1,"Peri Base = %x SDRAM %x\n",/*get_hwbase()*/bcm_host_get_peripheral_address(),bcm_host_get_sdram_address());
+	dbg_printf(0,"Peri Base = %x SDRAM %x\n",/*get_hwbase()*/bcm_host_get_peripheral_address(),bcm_host_get_sdram_address());
 	if(BCM2708_PERI_BASE==0xFE000000) // Fixme , could be inspect without this hardcoded value
 	{
+               dbg_printf(0,"RPi4 GPIO detected\n");
 		pi_is_2711=true;  //Rpi4
 		XOSC_FREQUENCY=54000000;
 	}
 	if(BCM2708_PERI_BASE==0)
 	{
-		dbg_printf(0,"Unknown peripheral base, swith to PI4 \n");
+		dbg_printf(0,"Unknown peripheral base, switch to PI4 \n");
 		BCM2708_PERI_BASE=0xfe000000;
 		XOSC_FREQUENCY=54000000;
 		pi_is_2711=true;  
