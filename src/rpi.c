@@ -21,11 +21,11 @@ unsigned bcm_host_get_peripheral_address(void)
    unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
    if (address == 0)
       address = get_dt_ranges("/proc/device-tree/soc/ranges", 8);
-   return address == ~0 ? 0x20000000 : address;
+   return address == ~0u ? 0x20000000 : address;
 }
 
 unsigned bcm_host_get_sdram_address(void)
 {
     unsigned address = get_dt_ranges("/proc/device-tree/axi/vc_mem/reg", 8);
-    return address == ~0 ? 0x40000000 : address;
+    return address == ~0u ? 0x40000000 : address;
 }
