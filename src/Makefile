@@ -1,14 +1,30 @@
 CFLAGS ?= -Wall -O3 -Wno-unused-variable
-CXXFLAGS ?= -std=c++11 -Wall -O3 -Wno-unused-variable -I /opt/vc/include
+CFLAGS += -std=c++11 -fPIC
+CXXFLAGS ?= -std=c++11 -Wall -O3 -Wno-unused-variable -I /opt/vc/include 
+CXXFLAGS += -std=c++11 -Wall -O3 -Wno-unused-variable -fPIC
 LDFLAGS ?= -lm -lrt -lpthread -L/opt/vc/lib -lbcm_host
+LDFLAGS += -fPIC
 CXX ?= c++
 CC ?= cc
 PREFIX ?= /usr/local/
+SRCCC=$(wildcard *.c)
+SRCXX=$(wildcard *.cpp)
+OBJS=$(SRCCC:.c=.o)
+OBJS+=$(SRCXX:.cpp=.o)
 
-librpitx: librpitx.h gpio.h gpio.cpp dma.h dma.cpp mailbox.c raspberry_pi_revision.c fmdmasync.h fmdmasync.cpp ngfmdmasync.h ngfmdmasync.cpp dsp.h dsp.cpp iqdmasync.h iqdmasync.cpp serialdmasync.h serialdmasync.cpp phasedmasync.h phasedmasync.cpp fskburst.h fskburst.cpp ookburst.cpp ookburst.h atv.h atv.cpp util.h
-	$(CC) $(CFLAGS) -c -o raspberry_pi_revision.o raspberry_pi_revision.c
-	$(CXX) $(CXXFLAGS) -c rpi.c dsp.cpp iqdmasync.cpp ngfmdmasync.cpp fmdmasync.cpp  dma.cpp gpio.cpp serialdmasync.cpp phasedmasync.cpp amdmasync.h amdmasync.cpp fskburst.cpp ookburst.cpp atv.cpp util.cpp mailbox.c
-	$(AR) rc librpitx.a rpi.o dsp.o iqdmasync.o ngfmdmasync.o fmdmasync.o  dma.o gpio.o mailbox.o raspberry_pi_revision.o  serialdmasync.o phasedmasync.o amdmasync.o fskburst.o ookburst.o atv.o util.o mailbox.o
+all: librpitx.a librpitx.so
+
+%.o: %.c
+	$(CXX) $(CFLAGS) -c $^
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $^
+
+librpitx.a: $(OBJS)
+	$(AR) rc $@ $^
+
+librpitx.so: $(OBJS)
+	$(CXX) -fPIC -shared -o $@ $^ $(LDFLAGS) 
 
 install: librpitx
 	mkdir -p $(PREFIX)/include/librpitx
@@ -17,4 +33,4 @@ install: librpitx
 	install librpitx.a $(PREFIX)/lib
 
 clean:
-	rm -f *.o *.a
+	rm -f $(OBJS) *.a *.so
