@@ -26,7 +26,7 @@ librpitx.a: $(OBJS)
 librpitx.so: $(OBJS)
 	$(CXX) -fPIC -shared -o $@ $^ $(LDFLAGS) 
 
-install: librpitx
+install: librpitx.a
 	mkdir -p $(PREFIX)/include/librpitx
 	install *.h $(PREFIX)/include/librpitx
 	mkdir -p $(PREFIX)/lib
