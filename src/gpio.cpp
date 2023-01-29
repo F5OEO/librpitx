@@ -136,7 +136,7 @@ clkgpio::~clkgpio()
 
 int clkgpio::SetPllNumber(int PllNo, int MashType)
 {
-	//print_clock_tree();
+	print_clock_tree();
 	if (PllNo < 8)
 		pllnumber = PllNo;
 	else
@@ -169,7 +169,9 @@ uint64_t clkgpio::GetPllFrequency(int PllNo)
 	//case clk_pllb:Freq=XOSC_FREQUENCY*((uint64_t)gpioreg[PLLB_CTRL]&0x3ff) +XOSC_FREQUENCY*(uint64_t)gpioreg[PLLB_FRAC]/(1<<20);break;
 	case clk_pllc:
 		//Freq = (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC]) / (1 << 20)) / (2*gpioreg[PLLC_PER] >> 1)) /((gpioreg[PLLC_CTRL] >> 12)&0x7) ;
-		Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC]) / (1 << 20)) / (2*gpioreg[PLLC_PER] >> 1))/((gpioreg[PLLC_CTRL] >> 12)&0x7) ;
+		//dbg_printf(1, "Gpio reg %x %x\n",gpioreg[PLLC_PER],gpioreg[PLLC_CTRL] >> 12);
+		if((gpioreg[PLLC_PER]!=0)&&(gpioreg[PLLC_CTRL] >> 12 != 0)) 
+			Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLC_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLC_FRAC]) / (1 << 20)) / (2*gpioreg[PLLC_PER] >> 1))/((gpioreg[PLLC_CTRL] >> 12)&0x7) ;
 		break;
 	case clk_plld:
 		Freq =( (XOSC_FREQUENCY * ((uint64_t)gpioreg[PLLD_CTRL] & 0x3ff) + (XOSC_FREQUENCY * (uint64_t)gpioreg[PLLD_FRAC]) / (1 << 20)) / (2*gpioreg[PLLD_PER] >> 1))/((gpioreg[PLLD_CTRL] >> 12)&0x7) ;
