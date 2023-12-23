@@ -26,7 +26,7 @@ fskburst::fskburst(uint64_t TuneFrequency, float SymbolRate, float Deviation, in
 	clkgpio::SetAdvancedPllMode(true);
 	clkgpio::SetCenterFrequency(TuneFrequency, Deviation*10); // Write Mult Int and Frac : FixMe carrier is already there
 	clkgpio::SetFrequency(0);
-	disableclk(4);
+	disableclk(17);//disableclk(4);
 	syncwithpwm = false;
 	Ramp = SR_upsample * RatioRamp; //Ramp time = 10%
 
