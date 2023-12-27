@@ -33,7 +33,7 @@ amdmasync::amdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t Fif
 	clkgpio::SetAdvancedPllMode(true);
 	clkgpio::SetCenterFrequency(TuneFrequency,SampleRate); 
 	clkgpio::SetFrequency(0);
-	clkgpio::enableclk(4); // GPIO 4 CLK by default
+	clkgpio::enableclk(17);//clkgpio::enableclk(4); // GPIO 4 CLK by default
 	syncwithpwm=false;
 	
 	if(syncwithpwm)
