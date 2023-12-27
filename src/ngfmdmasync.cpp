@@ -31,7 +31,7 @@ ngfmdmasync::ngfmdmasync(uint64_t TuneFrequency,uint32_t SR,int Channel,uint32_t
 	clkgpio::SetAdvancedPllMode(true);
 	clkgpio::SetCenterFrequency(TuneFrequency,SampleRate); // Write Mult Int and Frac : FixMe carrier is already there
 	clkgpio::SetFrequency(0);
-	clkgpio::enableclk(4); // GPIO 4 CLK by default
+	clkgpio::enableclk(17);//clkgpio::enableclk(4); // GPIO 4 CLK by default
 	syncwithpwm=UsePwm;
 	
 	if(syncwithpwm)
