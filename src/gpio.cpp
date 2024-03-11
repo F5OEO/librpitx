@@ -54,7 +54,7 @@ uint32_t get_hwbase(void)
 
     if ((fd = fopen(ranges_file, "rb")) == NULL)
     {
-        printf("Can't open '%s'\n", ranges_file);
+        dbg_printf(1,"Can't open '%s'\n", ranges_file);
     }
     else if (fread(ranges, 1, sizeof(ranges), fd) >= 8)
     {
@@ -73,7 +73,7 @@ uint32_t get_hwbase(void)
                 (ranges[3] != 0x00) ||
                 ((ret != 0x20000000) && (ret != 0x3f000000) && (ret != 0xfe000000)))
         {
-            printf("Unexpected ranges data (%02x%02x%02x%02x %02x%02x%02x%02x %02x%02x%02x%02x)\n",
+            dbg_printf(1,"Unexpected ranges data (%02x%02x%02x%02x %02x%02x%02x%02x %02x%02x%02x%02x)\n",
                    ranges[0], ranges[1], ranges[2], ranges[3],
                    ranges[4], ranges[5], ranges[6], ranges[7],
                    ranges[8], ranges[9], ranges[10], ranges[11]);
@@ -82,7 +82,7 @@ uint32_t get_hwbase(void)
     }
     else
     {
-	printf("Ranges data too short\n");
+	dbg_printf(1,"Ranges data too short\n");
     }
 
     fclose(fd);
@@ -311,7 +311,7 @@ int clkgpio::ComputeBestLO(uint64_t Frequency, int Bandwidth)
 	int best_divider = 0;
 
 	int solution_count = 0;
-	//printf("carrier:%3.2f ",carrier_freq/1e6);
+	//dbg_printf(1,"carrier:%3.2f ",carrier_freq/1e6);
 	int divider=0, min_int_multiplier, max_int_multiplier, fom, int_multiplier, best_fom = 0;
 	double Multiplier=0.0;
 	best_divider = 0;
@@ -576,99 +576,99 @@ void clkgpio::SetPLLMasterLoop(int Ki,int Kp,int Ka)
 void clkgpio::print_clock_tree(void)
 {
 
-	printf("PLLC_DIG0=%08x\n", gpioreg[(0x1020 / 4)]);
-	printf("PLLC_DIG1=%08x\n", gpioreg[(0x1024 / 4)]);
-	printf("PLLC_DIG2=%08x\n", gpioreg[(0x1028 / 4)]);
-	printf("PLLC_DIG3=%08x\n", gpioreg[(0x102c / 4)]);
-	printf("PLLC_ANA0=%08x\n", gpioreg[(0x1030 / 4)]);
-	printf("PLLC_ANA1=%08x\n", gpioreg[(0x1034 / 4)]);
-	printf("PLLC_ANA2=%08x\n", gpioreg[(0x1038 / 4)]);
-	printf("PLLC_ANA3=%08x\n", gpioreg[(0x103c / 4)]);
-	printf("PLLC_DIG0R=%08x\n", gpioreg[(0x1820 / 4)]);
-	printf("PLLC_DIG1R=%08x\n", gpioreg[(0x1824 / 4)]);
-	printf("PLLC_DIG2R=%08x\n", gpioreg[(0x1828 / 4)]);
-	printf("PLLC_DIG3R=%08x\n", gpioreg[(0x182c / 4)]);
+	dbg_printf(1,"PLLC_DIG0=%08x\n", gpioreg[(0x1020 / 4)]);
+	dbg_printf(1,"PLLC_DIG1=%08x\n", gpioreg[(0x1024 / 4)]);
+	dbg_printf(1,"PLLC_DIG2=%08x\n", gpioreg[(0x1028 / 4)]);
+	dbg_printf(1,"PLLC_DIG3=%08x\n", gpioreg[(0x102c / 4)]);
+	dbg_printf(1,"PLLC_ANA0=%08x\n", gpioreg[(0x1030 / 4)]);
+	dbg_printf(1,"PLLC_ANA1=%08x\n", gpioreg[(0x1034 / 4)]);
+	dbg_printf(1,"PLLC_ANA2=%08x\n", gpioreg[(0x1038 / 4)]);
+	dbg_printf(1,"PLLC_ANA3=%08x\n", gpioreg[(0x103c / 4)]);
+	dbg_printf(1,"PLLC_DIG0R=%08x\n", gpioreg[(0x1820 / 4)]);
+	dbg_printf(1,"PLLC_DIG1R=%08x\n", gpioreg[(0x1824 / 4)]);
+	dbg_printf(1,"PLLC_DIG2R=%08x\n", gpioreg[(0x1828 / 4)]);
+	dbg_printf(1,"PLLC_DIG3R=%08x\n", gpioreg[(0x182c / 4)]);
 
-	printf("PLLA_ANA0=%08x\n", gpioreg[(0x1010 / 4)]);
-	printf("PLLA_ANA1=%08x prediv=%d\n", gpioreg[(0x1014 / 4)], (gpioreg[(0x1014 / 4)] >> 14) & 1);
-	printf("PLLA_ANA2=%08x\n", gpioreg[(0x1018 / 4)]);
-	printf("PLLA_ANA3=%08x\n", gpioreg[(0x101c / 4)]);
+	dbg_printf(1,"PLLA_ANA0=%08x\n", gpioreg[(0x1010 / 4)]);
+	dbg_printf(1,"PLLA_ANA1=%08x prediv=%d\n", gpioreg[(0x1014 / 4)], (gpioreg[(0x1014 / 4)] >> 14) & 1);
+	dbg_printf(1,"PLLA_ANA2=%08x\n", gpioreg[(0x1018 / 4)]);
+	dbg_printf(1,"PLLA_ANA3=%08x\n", gpioreg[(0x101c / 4)]);
 
-	printf("GNRIC CTL=%08x DIV=%8x  ", gpioreg[0], gpioreg[1]);
-	printf("VPU   CTL=%08x DIV=%8x\n", gpioreg[2], gpioreg[3]);
-	printf("SYS   CTL=%08x DIV=%8x  ", gpioreg[4], gpioreg[5]);
-	printf("PERIA CTL=%08x DIV=%8x\n", gpioreg[6], gpioreg[7]);
-	printf("PERII CTL=%08x DIV=%8x  ", gpioreg[8], gpioreg[9]);
-	printf("H264  CTL=%08x DIV=%8x\n", gpioreg[10], gpioreg[11]);
-	printf("ISP   CTL=%08x DIV=%8x  ", gpioreg[12], gpioreg[13]);
-	printf("V3D   CTL=%08x DIV=%8x\n", gpioreg[14], gpioreg[15]);
+	dbg_printf(1,"GNRIC CTL=%08x DIV=%8x  ", gpioreg[0], gpioreg[1]);
+	dbg_printf(1,"VPU   CTL=%08x DIV=%8x\n", gpioreg[2], gpioreg[3]);
+	dbg_printf(1,"SYS   CTL=%08x DIV=%8x  ", gpioreg[4], gpioreg[5]);
+	dbg_printf(1,"PERIA CTL=%08x DIV=%8x\n", gpioreg[6], gpioreg[7]);
+	dbg_printf(1,"PERII CTL=%08x DIV=%8x  ", gpioreg[8], gpioreg[9]);
+	dbg_printf(1,"H264  CTL=%08x DIV=%8x\n", gpioreg[10], gpioreg[11]);
+	dbg_printf(1,"ISP   CTL=%08x DIV=%8x  ", gpioreg[12], gpioreg[13]);
+	dbg_printf(1,"V3D   CTL=%08x DIV=%8x\n", gpioreg[14], gpioreg[15]);
 
-	printf("CAM0  CTL=%08x DIV=%8x  ", gpioreg[16], gpioreg[17]);
-	printf("CAM1  CTL=%08x DIV=%8x\n", gpioreg[18], gpioreg[19]);
-	printf("CCP2  CTL=%08x DIV=%8x  ", gpioreg[20], gpioreg[21]);
-	printf("DSI0E CTL=%08x DIV=%8x\n", gpioreg[22], gpioreg[23]);
-	printf("DSI0P CTL=%08x DIV=%8x  ", gpioreg[24], gpioreg[25]);
-	printf("DPI   CTL=%08x DIV=%8x\n", gpioreg[26], gpioreg[27]);
-	printf("GP0   CTL=%08x DIV=%8x  ", gpioreg[0x70 / 4], gpioreg[0x74 / 4]);
-	printf("GP1   CTL=%08x DIV=%8x\n", gpioreg[30], gpioreg[31]);
+	dbg_printf(1,"CAM0  CTL=%08x DIV=%8x  ", gpioreg[16], gpioreg[17]);
+	dbg_printf(1,"CAM1  CTL=%08x DIV=%8x\n", gpioreg[18], gpioreg[19]);
+	dbg_printf(1,"CCP2  CTL=%08x DIV=%8x  ", gpioreg[20], gpioreg[21]);
+	dbg_printf(1,"DSI0E CTL=%08x DIV=%8x\n", gpioreg[22], gpioreg[23]);
+	dbg_printf(1,"DSI0P CTL=%08x DIV=%8x  ", gpioreg[24], gpioreg[25]);
+	dbg_printf(1,"DPI   CTL=%08x DIV=%8x\n", gpioreg[26], gpioreg[27]);
+	dbg_printf(1,"GP0   CTL=%08x DIV=%8x  ", gpioreg[0x70 / 4], gpioreg[0x74 / 4]);
+	dbg_printf(1,"GP1   CTL=%08x DIV=%8x\n", gpioreg[30], gpioreg[31]);
 
-	printf("GP2   CTL=%08x DIV=%8x  ", gpioreg[32], gpioreg[33]);
-	printf("HSM   CTL=%08x DIV=%8x\n", gpioreg[34], gpioreg[35]);
-	printf("OTP   CTL=%08x DIV=%8x  ", gpioreg[36], gpioreg[37]);
-	printf("PCM   CTL=%08x DIV=%8x\n", gpioreg[38], gpioreg[39]);
-	printf("PWM   CTL=%08x DIV=%8x  ", gpioreg[40], gpioreg[41]);
-	printf("SLIM  CTL=%08x DIV=%8x\n", gpioreg[42], gpioreg[43]);
-	printf("SMI   CTL=%08x DIV=%8x  ", gpioreg[44], gpioreg[45]);
-	printf("SMPS  CTL=%08x DIV=%8x\n", gpioreg[46], gpioreg[47]);
+	dbg_printf(1,"GP2   CTL=%08x DIV=%8x  ", gpioreg[32], gpioreg[33]);
+	dbg_printf(1,"HSM   CTL=%08x DIV=%8x\n", gpioreg[34], gpioreg[35]);
+	dbg_printf(1,"OTP   CTL=%08x DIV=%8x  ", gpioreg[36], gpioreg[37]);
+	dbg_printf(1,"PCM   CTL=%08x DIV=%8x\n", gpioreg[38], gpioreg[39]);
+	dbg_printf(1,"PWM   CTL=%08x DIV=%8x  ", gpioreg[40], gpioreg[41]);
+	dbg_printf(1,"SLIM  CTL=%08x DIV=%8x\n", gpioreg[42], gpioreg[43]);
+	dbg_printf(1,"SMI   CTL=%08x DIV=%8x  ", gpioreg[44], gpioreg[45]);
+	dbg_printf(1,"SMPS  CTL=%08x DIV=%8x\n", gpioreg[46], gpioreg[47]);
 
-	printf("TCNT  CTL=%08x DIV=%8x  ", gpioreg[48], gpioreg[49]);
-	printf("TEC   CTL=%08x DIV=%8x\n", gpioreg[50], gpioreg[51]);
-	printf("TD0   CTL=%08x DIV=%8x  ", gpioreg[52], gpioreg[53]);
-	printf("TD1   CTL=%08x DIV=%8x\n", gpioreg[54], gpioreg[55]);
+	dbg_printf(1,"TCNT  CTL=%08x DIV=%8x  ", gpioreg[48], gpioreg[49]);
+	dbg_printf(1,"TEC   CTL=%08x DIV=%8x\n", gpioreg[50], gpioreg[51]);
+	dbg_printf(1,"TD0   CTL=%08x DIV=%8x  ", gpioreg[52], gpioreg[53]);
+	dbg_printf(1,"TD1   CTL=%08x DIV=%8x\n", gpioreg[54], gpioreg[55]);
 
-	printf("TSENS CTL=%08x DIV=%8x  ", gpioreg[56], gpioreg[57]);
-	printf("TIMER CTL=%08x DIV=%8x\n", gpioreg[58], gpioreg[59]);
-	printf("UART  CTL=%08x DIV=%8x  ", gpioreg[60], gpioreg[61]);
-	printf("VEC   CTL=%08x DIV=%8x\n", gpioreg[62], gpioreg[63]);
+	dbg_printf(1,"TSENS CTL=%08x DIV=%8x  ", gpioreg[56], gpioreg[57]);
+	dbg_printf(1,"TIMER CTL=%08x DIV=%8x\n", gpioreg[58], gpioreg[59]);
+	dbg_printf(1,"UART  CTL=%08x DIV=%8x  ", gpioreg[60], gpioreg[61]);
+	dbg_printf(1,"VEC   CTL=%08x DIV=%8x\n", gpioreg[62], gpioreg[63]);
 
-	printf("PULSE CTL=%08x DIV=%8x  ", gpioreg[100], gpioreg[101]);
-	printf("PLLT  CTL=%08x DIV=????????\n", gpioreg[76]);
+	dbg_printf(1,"PULSE CTL=%08x DIV=%8x  ", gpioreg[100], gpioreg[101]);
+	dbg_printf(1,"PLLT  CTL=%08x DIV=????????\n", gpioreg[76]);
 
-	printf("DSI1E CTL=%08x DIV=%8x  ", gpioreg[86], gpioreg[87]);
-	printf("DSI1P CTL=%08x DIV=%8x\n", gpioreg[88], gpioreg[89]);
-	printf("AVE0  CTL=%08x DIV=%8x\n", gpioreg[90], gpioreg[91]);
+	dbg_printf(1,"DSI1E CTL=%08x DIV=%8x  ", gpioreg[86], gpioreg[87]);
+	dbg_printf(1,"DSI1P CTL=%08x DIV=%8x\n", gpioreg[88], gpioreg[89]);
+	dbg_printf(1,"AVE0  CTL=%08x DIV=%8x\n", gpioreg[90], gpioreg[91]);
 
-	printf("CMPLLA=%08x  ", gpioreg[0x104 / 4]);
-	printf("CMPLLC=%08x \n", gpioreg[0x108 / 4]);
-	printf("CMPLLD=%08x   ", gpioreg[0x10C / 4]);
-	printf("CMPLLH=%08x \n", gpioreg[0x110 / 4]);
+	dbg_printf(1,"CMPLLA=%08x  ", gpioreg[0x104 / 4]);
+	dbg_printf(1,"CMPLLC=%08x \n", gpioreg[0x108 / 4]);
+	dbg_printf(1,"CMPLLD=%08x   ", gpioreg[0x10C / 4]);
+	dbg_printf(1,"CMPLLH=%08x \n", gpioreg[0x110 / 4]);
 
-	printf("EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
-	printf("EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
-	printf("EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
+	dbg_printf(1,"EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
+	dbg_printf(1,"EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
+	dbg_printf(1,"EMMC  CTL=%08x DIV=%8x\n", gpioreg[112], gpioreg[113]);
 
 	// Sometimes calculated frequencies are off by a factor of 2
 	// ANA1 bit 14 may indicate that a /2 prescaler is active
 	double xoscmhz=XOSC_FREQUENCY/1e6;
-	printf("PLLA PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLA_CTRL] >> 12)&0x7, gpioreg[PLLA_CTRL] & 0x3ff, gpioreg[PLLA_FRAC]);
-	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLA_CTRL] & 0x3ff) + ((float)gpioreg[PLLA_FRAC]) / ((float)(1 << 20))));
-	printf("DSI0=%d CORE=%d PER=%d CCP2=%d\n\n", gpioreg[PLLA_DSI0], gpioreg[PLLA_CORE], gpioreg[PLLA_PER], gpioreg[PLLA_CCP2]);
+	dbg_printf(1,"PLLA PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLA_CTRL] >> 12)&0x7, gpioreg[PLLA_CTRL] & 0x3ff, gpioreg[PLLA_FRAC]);
+	dbg_printf(1," %f MHz\n", xoscmhz * ((float)(gpioreg[PLLA_CTRL] & 0x3ff) + ((float)gpioreg[PLLA_FRAC]) / ((float)(1 << 20))));
+	dbg_printf(1,"DSI0=%d CORE=%d PER=%d CCP2=%d\n\n", gpioreg[PLLA_DSI0], gpioreg[PLLA_CORE], gpioreg[PLLA_PER], gpioreg[PLLA_CCP2]);
 
-	printf("PLLB PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLB_CTRL] >> 12)&0x7, gpioreg[PLLB_CTRL] & 0x3ff, gpioreg[PLLB_FRAC]);
-	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLB_CTRL] & 0x3ff) + ((float)gpioreg[PLLB_FRAC]) / ((float)(1 << 20))));
-	printf("ARM=%d SP0=%d SP1=%d SP2=%d\n\n", gpioreg[PLLB_ARM], gpioreg[PLLB_SP0], gpioreg[PLLB_SP1], gpioreg[PLLB_SP2]);
+	dbg_printf(1,"PLLB PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLB_CTRL] >> 12)&0x7, gpioreg[PLLB_CTRL] & 0x3ff, gpioreg[PLLB_FRAC]);
+	dbg_printf(1," %f MHz\n", xoscmhz * ((float)(gpioreg[PLLB_CTRL] & 0x3ff) + ((float)gpioreg[PLLB_FRAC]) / ((float)(1 << 20))));
+	dbg_printf(1,"ARM=%d SP0=%d SP1=%d SP2=%d\n\n", gpioreg[PLLB_ARM], gpioreg[PLLB_SP0], gpioreg[PLLB_SP1], gpioreg[PLLB_SP2]);
 
-	printf("PLLC PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLC_CTRL] >> 12)&0x7, gpioreg[PLLC_CTRL] & 0x3ff, gpioreg[PLLC_FRAC]);
-	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLC_CTRL] & 0x3ff) + ((float)gpioreg[PLLC_FRAC]) / ((float)(1 << 20))));
-	printf("CORE2=%d CORE1=%d PER=%d CORE0=%d\n\n", gpioreg[PLLC_CORE2], gpioreg[PLLC_CORE1], gpioreg[PLLC_PER], gpioreg[PLLC_CORE0]);
+	dbg_printf(1,"PLLC PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLC_CTRL] >> 12)&0x7, gpioreg[PLLC_CTRL] & 0x3ff, gpioreg[PLLC_FRAC]);
+	dbg_printf(1," %f MHz\n", xoscmhz * ((float)(gpioreg[PLLC_CTRL] & 0x3ff) + ((float)gpioreg[PLLC_FRAC]) / ((float)(1 << 20))));
+	dbg_printf(1,"CORE2=%d CORE1=%d PER=%d CORE0=%d\n\n", gpioreg[PLLC_CORE2], gpioreg[PLLC_CORE1], gpioreg[PLLC_PER], gpioreg[PLLC_CORE0]);
 
-	printf("PLLD %x PDIV=%d NDIV=%d FRAC=%d  ", gpioreg[PLLD_CTRL], (gpioreg[PLLD_CTRL] >> 12)&0x7, gpioreg[PLLD_CTRL] & 0x3ff, gpioreg[PLLD_FRAC]);
-	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLD_CTRL] & 0x3ff) + ((float)gpioreg[PLLD_FRAC]) / ((float)(1 << 20))));
-	printf("DSI0=%d CORE=%d PER=%d DSI1=%d\n\n", gpioreg[PLLD_DSI0], gpioreg[PLLD_CORE], gpioreg[PLLD_PER], gpioreg[PLLD_DSI1]);
+	dbg_printf(1,"PLLD %x PDIV=%d NDIV=%d FRAC=%d  ", gpioreg[PLLD_CTRL], (gpioreg[PLLD_CTRL] >> 12)&0x7, gpioreg[PLLD_CTRL] & 0x3ff, gpioreg[PLLD_FRAC]);
+	dbg_printf(1," %f MHz\n", xoscmhz * ((float)(gpioreg[PLLD_CTRL] & 0x3ff) + ((float)gpioreg[PLLD_FRAC]) / ((float)(1 << 20))));
+	dbg_printf(1,"DSI0=%d CORE=%d PER=%d DSI1=%d\n\n", gpioreg[PLLD_DSI0], gpioreg[PLLD_CORE], gpioreg[PLLD_PER], gpioreg[PLLD_DSI1]);
 
-	printf("PLLH PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLH_CTRL] >> 12)&0x7, gpioreg[PLLH_CTRL] & 0x3ff, gpioreg[PLLH_FRAC]);
-	printf(" %f MHz\n", xoscmhz * ((float)(gpioreg[PLLH_CTRL] & 0x3ff) + ((float)gpioreg[PLLH_FRAC]) / ((float)(1 << 20))));
-	printf("AUX=%d RCAL=%d PIX=%d STS=%d\n\n", gpioreg[PLLH_AUX], gpioreg[PLLH_RCAL], gpioreg[PLLH_PIX], gpioreg[PLLH_STS]);
+	dbg_printf(1,"PLLH PDIV=%d NDIV=%d FRAC=%d  ", (gpioreg[PLLH_CTRL] >> 12)&0x7, gpioreg[PLLH_CTRL] & 0x3ff, gpioreg[PLLH_FRAC]);
+	dbg_printf(1," %f MHz\n", xoscmhz * ((float)(gpioreg[PLLH_CTRL] & 0x3ff) + ((float)gpioreg[PLLH_FRAC]) / ((float)(1 << 20))));
+	dbg_printf(1,"AUX=%d RCAL=%d PIX=%d STS=%d\n\n", gpioreg[PLLH_AUX], gpioreg[PLLH_RCAL], gpioreg[PLLH_PIX], gpioreg[PLLH_STS]);
 }
 
 void clkgpio::enableclk(int gpio)
@@ -1003,7 +1003,7 @@ int pcmgpio::SetPrediv(int predivisor) //Carefull we use a 10 fixe divisor for n
 	gpioreg[PCM_TXC_A] = 0 << 31 | 1 << 30 | 0 << 20 | 0 << 16; // 1 channel, 8 bits
 	usleep(100);
 
-	//printf("Nb PCM STEP (<1000):%d\n",NbStepPCM);
+	//dbg_printf(1,"Nb PCM STEP (<1000):%d\n",NbStepPCM);
 	gpioreg[PCM_MODE_A] = (predivisor - 1) << 10; // SHOULD NOT EXCEED 1000 !!!
 	usleep(100);
 	gpioreg[PCM_CS_A] |= 1 << 4 | 1 << 3; // Clear FIFOs
